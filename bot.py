@@ -2,42 +2,20 @@ import os
 import time
 import requests
 import json
-from datetime import datetime
+from urllib.parse import quote
 
 # --- НАСТРОЙКИ ---
-TELEGRAM_TOKEN = "8717717565:AAEkk0Xb1qXRCeXkZIypzpWNTwEva9PsiYg" 
+TELEGRAM_TOKEN = "8717717565:AAEkk0Xb1qXRCeXkZIypzpWNTwEva9PsiYg" # Твой токен
 WEB_APP_URL = "https://cryptolord6999.github.io/salon-app/" 
-OWNER_ID = 5209879075  # Твой ID (из логов)
+OWNER_ID = 5209879075 # Твой ID
 
 # Простая "база данных" в памяти для статистики (для MVP)
-stats = {
-    "total_leads": 0,
-    "bookings_today": 0,
-    "revenue_potential": 0
-}
+# В реальном проекте тут была бы PostgreSQL
+leads_db = []
+salon_status = "open" # open / closed
 
-if TELEGRAM_TOKEN == "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН" or TELEGRAM_TOKEN == "":
-    print("⚠️ РЕЖИМ СИМУЛЯЦИИ")
-    SIMULATION_MODE = True
-else:
-    SIMULATION_MODE = False
-    print(f"✅ БОТ ЗАПУЩЕН! Владелец: {OWNER_ID}")
-
-# --- ФУНКЦИИ ОТВЕТОВ ---
-def get_bot_response(text):
-    text = text.lower()
-    if "цена" in text or "стоит" in text:
-        return "💰 Прайс:\n• Стрижка — 1500₽\n• Маникюр — 2000₽\n\nНажмите кнопку ниже, чтобы записаться онлайн!"
-    elif "запиши" in text or "да" in text:
-        return "📅 Выберите удобное время в приложении по кнопке ниже 👇"
-    elif "привет" in text or "/start" in text:
-        return f"Здравствуйте! Я ассистент салона 'Альфа'.\n\nМы работаем ежедневно с 10:00 до 22:00.\n\n✍️ Записаться можно через приложение:"
-    else:
-        return "Я пока учусь. Воспользуйтесь меню или кнопкой 'Записаться онлайн'."
-
-# --- КЛАВИАТУРЫ ---
-def get_main_keyboard():
-    # Кнопка Web App + Кнопка для владельца (скрытая логика)
+def get_keyboard_main():
+    """Клавиатура для клиента"""
     keyboard = {
         "inline_keyboard": [
             [{"text": "📱 Записаться онлайн", "web_app": {"url": WEB_APP_URL}}]
@@ -45,35 +23,22 @@ def get_main_keyboard():
     }
     return keyboard
 
-def get_owner_actions_keyboard(booking_data):
-    # Кнопки подтверждения для владельца
-    callback_data = json.dumps({"action": "confirm_booking", "data": booking_data})
+def get_keyboard_admin():
+    """Клавиатура для владельца (Партнерский бот)"""
     keyboard = {
         "inline_keyboard": [
             [
-                {"text": "✅ Подтвердить", "callback_data": callback_data},
-                {"text": "❌ Отклонить", "callback_data": json.dumps({"action": "reject"})}
+                {"text": "📊 Статистика", "callback_data": "action_stats"},
+                {"text": "⚙️ Настройки", "callback_data": "action_settings"}
             ],
-            [{"text": "📞 Позвонить клиенту", "url": "tel:+79990000000"}] # Заглушка
+            [
+                {"text": "📥 Выгрузить лиды", "callback_data": "action_leads"}
+            ]
         ]
     }
     return keyboard
 
-def get_admin_menu_keyboard():
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "📊 Статистика", "callback_data": "get_stats"}],
-            [{"text": "⚙️ Настройки салона", "callback_data": "settings"}]
-        ]
-    }
-    return keyboard
-
-# --- ОТПРАВКА СООБЩЕНИЙ ---
 def send_message(chat_id, text, reply_markup=None, parse_mode="HTML"):
-    if SIMULATION_MODE:
-        print(f"[MSG to {chat_id}]: {text}")
-        return
-    
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -84,137 +49,181 @@ def send_message(chat_id, text, reply_markup=None, parse_mode="HTML"):
         payload["reply_markup"] = json.dumps(reply_markup)
     
     try:
-        resp = requests.post(url, json=payload, timeout=10)
+        resp = requests.post(url, json=payload)
         return resp.json()
     except Exception as e:
-        print(f"Error sending message: {e}")
+        print(f"Ошибка отправки: {e}")
+        return None
 
-# --- ОБРАБОТКА ДЕЙСТВИЙ ВЛАДЕЛЬЦА ---
-def handle_callback(query_id, chat_id, data):
+# --- ЛОГИКА БОТА ---
+def handle_text(chat_id, text):
+    # Если пишет владелец - показываем меню управления
+    if chat_id == OWNER_ID:
+        if text == "/start":
+            msg = (
+                f"👋 <b>Привет, Владелец!</b>\n\n"
+                f"Это панель управления салоном 'Альфа'.\n"
+                f"Статус салона: {'🟢 Открыт' if salon_status == 'open' else '🔴 Закрыт'}\n\n"
+                f"Выберите действие:"
+            )
+            send_message(chat_id, msg, get_keyboard_admin())
+            return
+        
+        # Команды владельца
+        if text == "/stats":
+            count = len([l for l in leads_db if l.get('status') == 'new'])
+            send_message(chat_id, f"📊 <b>Статистика:</b>\nВсего лидов: {len(leads_db)}\nНовых: {count}")
+            return
+            
+    # Если пишет клиент
+    else:
+        if text == "/start":
+            msg = (
+                f"Здравствуйте! 👋\n"
+                f"Я ИИ-ассистент салона 'Альфа'.\n\n"
+                f"Нажмите кнопку ниже, чтобы записаться онлайн за 30 секунд:"
+            )
+            send_message(chat_id, msg, get_keyboard_main())
+            return
+
+def handle_callback(chat_id, data, message_id):
+    """Обработка нажатий на кнопки владельца"""
+    if data == "action_stats":
+        count_new = len([l for l in leads_db if l.get('status') == 'new'])
+        count_all = len(leads_db)
+        text = f"📊 <b>Статистика салона:</b>\n\nВсего записей: {count_all}\nОжидают подтверждения: {count_new}"
+        send_message(chat_id, text)
+        
+    elif data == "action_settings":
+        global salon_status
+        salon_status = "closed" if salon_status == "open" else "open"
+        status_text = "🟢 Открыт" if salon_status == "open" else "🔴 Закрыт"
+        send_message(chat_id, f"⚙️ Статус салона изменен на: {status_text}")
+        
+    elif data == "action_leads":
+        if not leads_db:
+            send_message(chat_id, "📭 Лидов пока нет.")
+            return
+        
+        # Формируем краткий отчет
+        report = "📥 <b>Последние лиды:</b>\n\n"
+        for lead in leads_db[-5:]: # Последние 5
+            report += f"▪️ {lead['name']} на {lead['service']} ({lead['time']})\n"
+        
+        send_message(chat_id, report)
+
+def handle_web_app_data(chat_id, data_str):
+    """Обработка данных из TWA"""
     try:
-        action_data = json.loads(data)
-        action = action_data.get("action")
-
-        if action == "get_stats":
-            msg = f"📊 <b>Статистика салона</b>\n\n"
-            msg += f"Всего лидов: {stats['total_leads']}\n"
-            msg += f"Записей сегодня: {stats['bookings_today']}\n"
-            msg += f"Потенциал выручки: {stats['revenue_potential']}₽"
-            send_message(chat_id, msg)
-            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery", json={"callback_query_id": query_id})
-
-        elif action == "confirm_booking":
-            booking = action_data.get("data", {})
-            client_name = booking.get("name", "Клиент")
+        data = json.loads(data_str)
+        if data.get('action') == 'booking':
+            name = data.get('name')
+            service = data.get('service')
+            time_slot = data.get('time')
+            price = data.get('price')
             
-            # Тут можно добавить логику сохранения в БД
-            msg = f"✅ <b>Заявка подтверждена!</b>\nМастер уведомлен.\nКлиент: {client_name}"
-            send_message(chat_id, msg)
+            # Сохраняем лид
+            new_lead = {
+                "name": name,
+                "service": service,
+                "time": time_slot,
+                "price": price,
+                "status": "new",
+                "chat_id": chat_id
+            }
+            leads_db.append(new_lead)
             
-            # Уведомление клиенту (если бы мы знали его chat_id, но пока просто лог)
-            print(f"Бронь подтверждена для {client_name}")
-            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery", json={"callback_query_id": query_id, "text": "Подтверждено!"})
-
-        elif action == "reject":
-            send_message(chat_id, "❌ Заявка отклонена.")
-            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery", json={"callback_query_id": query_id, "text": "Отклонено"})
+            # Ответ клиенту
+            msg_client = (
+                f"✅ <b>{name}, вы записаны!</b>\n\n"
+                f"💇‍♀️ Услуга: {service}\n"
+                f"⏰ Время: {time_slot}\n"
+                f"💰 Ориент. цена: {price}₽\n\n"
+                f"Мы свяжемся с вами для подтверждения."
+            )
+            send_message(chat_id, msg_client)
             
-        elif action == "settings":
-            send_message(chat_id, "⚙️ <b>Настройки</b>\n\nЗдесь можно открыть/закрыть салон.\n(Функция в разработке)")
-            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery", json={"callback_query_id": query_id})
-
+            # Уведомление владельцу
+            msg_owner = (
+                f"🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n"
+                f"👤 Клиент: {name} (ID: {chat_id})\n"
+                f"💇‍♀️ Услуга: {service}\n"
+                f"⏰ Время: {time_slot}\n"
+                f"💰 Цена: {price}₽\n\n"
+                f"<i>Статус: Ожидает подтверждения</i>"
+            )
+            # Кнопки для владельца под сообщением
+            admin_kb = {
+                "inline_keyboard": [
+                    [
+                        {"text": "✅ Подтвердить", "callback_data": f"confirm_{len(leads_db)-1}"},
+                        {"text": "❌ Отклонить", "callback_data": f"reject_{len(leads_db)-1}"}
+                    ]
+                ]
+            }
+            send_message(OWNER_ID, msg_owner, admin_kb)
+            
     except Exception as e:
-        print(f"Callback error: {e}")
+        print(f"Ошибка парсинга WebApp данных: {e}")
+        send_message(chat_id, "⚠️ Произошла ошибка при записи. Попробуйте позже или напишите администратору.")
 
-# --- ГЛАВНЫЙ ЦИКЛ ---
-if SIMULATION_MODE:
-    print("Запустите симуляцию ввода данных...")
-else:
-    URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
-    last_update_id = 0
-    
-    # Отправляем приветствие владельцу при старте (опционально)
-    # send_message(OWNER_ID, "🤖 Бот-партнер запущен и готов к работе!", get_admin_menu_keyboard())
+# --- ЗАПУСК ---
+print(f"✅ БОТ ЗАПУЩЕН! Владелец: {OWNER_ID}")
+print(f"📱 Web App URL: {WEB_APP_URL}")
 
-    while True:
-        try:
-            params = {"offset": last_update_id + 1, "timeout": 10}
-            resp = requests.get(URL, params=params, timeout=15)
-            data = resp.json()
+URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
+last_update_id = 0
 
-            if data.get("ok"):
-                updates = data.get("result", [])
+while True:
+    try:
+        params = {"offset": last_update_id + 1, "timeout": 10}
+        resp = requests.get(URL, params=params, timeout=15)
+        data = resp.json()
+
+        if data.get("ok"):
+            updates = data.get("result", [])
+            
+            for update in updates:
+                last_update_id = update["update_id"]
                 
-                for update in updates:
-                    last_update_id = update["update_id"]
+                # 1. Текстовые сообщения
+                if "message" in update and "text" in update["message"]:
+                    chat_id = update["message"]["chat"]["id"]
+                    text = update["message"]["text"]
+                    print(f"📩 Текст от {chat_id}: {text}")
+                    handle_text(chat_id, text)
+
+                # 2. Данные из Web App (внутри сообщения)
+                elif "message" in update and "web_app_data" in update["message"]:
+                    chat_id = update["message"]["chat"]["id"]
+                    data_str = update["message"]["web_app_data"]["data"]
+                    print(f"📲 WebApp Data от {chat_id}: {data_str}")
+                    handle_web_app_data(chat_id, data_str)
+
+                # 3. Нажатия на кнопки (Callback Query)
+                elif "callback_query" in update:
+                    query = update["callback_query"]
+                    chat_id = query["message"]["chat"]["id"]
+                    data = query["data"]
+                    msg_id = query["message"]["message_id"]
                     
-                    # 1. Обычные сообщения
-                    if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat"]["id"]
-                        text = update["message"]["text"]
-                        
-                        print(f"📩 От {chat_id}: {text}")
-                        
-                        # Если пишет владелец - даем меню
-                        if chat_id == OWNER_ID and text == "/start":
-                            send_message(chat_id, "👋 <b>Панель управления салоном</b>\nВыберите действие:", get_admin_menu_keyboard())
-                        else:
-                            # Обычный ответ клиенту
-                            reply = get_bot_response(text)
-                            send_message(chat_id, reply, get_main_keyboard())
+                    print(f"🔘 Callback от {chat_id}: {data}")
+                    
+                    # Проверяем, владелец ли жмет кнопку
+                    if chat_id == OWNER_ID:
+                        handle_callback(chat_id, data, msg_id)
+                        # Обязательно подтверждаем получение callback, иначе Telegram будет ругаться
+                        req_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery"
+                        requests.post(req_url, json={"callback_query_id": query["id"]})
+                    else:
+                        # Если не владелец жмет кнопки админки (баг или взлом) - игнорируем
+                        pass
 
-                    # 2. Данные из Web App (Запись)
-                    elif "message" in update and "web_app_data" in update["message"]:
-                        chat_id = update["message"]["chat"]["id"]
-                        raw_data = update["message"]["web_app_data"]["data"]
-                        
-                        print(f"📲 NEW BOOKING: {raw_data}")
-                        
-                        try:
-                            booking = json.loads(raw_data)
-                            name = booking.get('name', 'Аноним')
-                            service = booking.get('service', 'Услуга')
-                            time_slot = booking.get('time', 'Время')
-                            price = booking.get('price', 0)
-                            
-                            # Обновляем статистику
-                            stats["total_leads"] += 1
-                            stats["bookings_today"] += 1
-                            stats["revenue_potential"] += int(price)
-                            
-                            # Формируем карточку для владельца
-                            owner_text = f"🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n"
-                            owner_text += f"👤 Клиент: {name}\n"
-                            owner_text += f"💇‍♀️ Услуга: {service}\n"
-                            owner_text += f"⏰ Время: {time_slot}\n"
-                            owner_text += f"💰 Цена: {price}₽\n\n"
-                            owner_text += f"ID клиента: <code>{chat_id}</code>"
-                            
-                            # Отправляем владельцу с кнопками действий
-                            send_message(OWNER_ID, owner_text, get_owner_actions_keyboard(booking))
-                            
-                            # Ответ клиенту
-                            send_message(chat_id, f"✅ <b>{name}</b>, ваша заявка принята!\nОжидайте подтверждения от администратора.", parse_mode="HTML")
-                            
-                        except Exception as e:
-                            print(f"Ошибка парсинга брони: {e}")
-                            send_message(chat_id, "⚠️ Произошла ошибка при записи. Попробуйте позже.")
+        time.sleep(1)
 
-                    # 3. Нажатия кнопок (Callback Query)
-                    elif "callback_query" in update:
-                        query = update["callback_query"]
-                        q_id = query["id"]
-                        q_chat_id = query["message"]["chat"]["id"]
-                        q_data = query["data"]
-                        
-                        print(f"🔘 Callback: {q_data}")
-                        handle_callback(q_id, q_chat_id, q_data)
-
-            time.sleep(1)
-
-        except KeyboardInterrupt:
-            print("\nОстановка...")
-            break
-        except Exception as e:
-            print(f"Global Error: {e}")
-            time.sleep(5)
+    except KeyboardInterrupt:
+        print("\n🛑 Остановка бота...")
+        break
+    except Exception as e:
+        print(f"❌ Ошибка цикла: {e}")
+        time.sleep(5)
