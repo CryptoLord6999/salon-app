@@ -3,181 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Салон Альфа</title>
+    <title>Запись в Салон</title>
+    <!-- Подключаем скрипт Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            /* Базовые цвета, если тема Telegram не загрузилась */
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --hint-color: #999999;
+            --button-color: #3390ec;
+            --button-text-color: #ffffff;
+            --secondary-bg-color: #f4f4f5;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
+            background-color: var(--tg-theme-bg-color, var(--bg-color));
+            color: var(--tg-theme-text-color, var(--text-color));
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            user-select: none; /* Запрет выделения текста как в приложении */
+            -webkit-tap-highlight-color: transparent;
         }
-        h1 { font-size: 22px; margin-bottom: 10px; }
-        p { color: var(--tg-theme-hint-color, #888); font-size: 14px; }
-        
+
+        .container {
+            padding: 16px;
+            padding-bottom: 80px; /* Отступ под главную кнопку */
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 10px 0 5px 0;
+        }
+
+        p.subtitle {
+            color: var(--tg-theme-hint-color, var(--hint-color));
+            font-size: 14px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        /* Карточки */
         .card {
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            background-color: var(--tg-theme-secondary-bg-color, var(--secondary-bg-color));
+            border-radius: 14px;
+            padding: 4px; /* Для разделения элементов внутри */
+            margin-bottom: 20px;
+            overflow: hidden;
         }
-        
-        .service-item {
+
+        /* Элементы списка услуг */
+        .list-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: 14px 16px;
+            background-color: var(--tg-theme-bg-color, var(--bg-color));
             border-bottom: 1px solid rgba(0,0,0,0.05);
             cursor: pointer;
+            transition: background-color 0.2s;
         }
-        .service-item:last-child { border-bottom: none; }
-        .service-item.selected { font-weight: bold; color: var(--tg-theme-button-color, #3390ec); }
-        
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:active {
+            opacity: 0.7;
+        }
+
+        .list-item.selected {
+            background-color: rgba(51, 144, 236, 0.1); /* Легкий синий фон */
+        }
+
+        .list-item.selected .item-name {
+            color: var(--tg-theme-button-color, var(--button-color));
+            font-weight: 600;
+        }
+
+        .item-price {
+            font-weight: 500;
+            color: var(--tg-theme-hint-color, var(--hint-color));
+            font-size: 14px;
+        }
+
+        /* Сетка времени */
         .time-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .time-slot {
-            background: var(--tg-theme-bg-color, #fff);
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            border-radius: 8px;
+            gap: 8px;
             padding: 8px;
+        }
+
+        .time-slot {
+            background-color: var(--tg-theme-bg-color, var(--bg-color));
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 12px 0;
             text-align: center;
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
+
+        .time-slot:active {
+            transform: scale(0.95);
+        }
+
         .time-slot.selected {
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border-color: var(--tg-theme-button-color, #3390ec);
+            background-color: var(--tg-theme-button-color, var(--button-color));
+            color: var(--tg-theme-button-text-color, var(--button-text-color));
+            box-shadow: 0 4px 8px rgba(51, 144, 236, 0.3);
+        }
+
+        /* Поле ввода */
+        .input-group {
+            padding: 12px 16px;
+            background-color: var(--tg-theme-bg-color, var(--bg-color));
         }
 
         input {
             width: 100%;
-            padding: 12px;
-            margin-top: 5px;
-            border-radius: 8px;
-            border: 1px solid var(--tg-theme-hint-color, #ccc);
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(128,128,128, 0.2);
+            background-color: var(--tg-theme-secondary-bg-color, var(--secondary-bg-color));
+            color: var(--tg-theme-text-color, var(--text-color));
+            font-size: 16px;
             box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
         }
 
-        /* Плавающая кнопка */
-        #main-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #fff);
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: none; /* Скрыта пока не выбрано время */
+        input:focus {
+            border-color: var(--tg-theme-button-color, var(--button-color));
+        }
+
+        /* Анимация появления */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
-    <h1>💇‍♀️ Салон "Альфа"</h1>
-    <p>Выберите услугу и время записи</p>
+    <div class="container fade-in">
+        <h1>💇‍♀️ Салон "Альфа"</h1>
+        <p class="subtitle">Онлайн-запись за 30 секунд</p>
 
-    <!-- Выбор услуги -->
-    <div class="card">
-        <div style="font-weight:bold; margin-bottom:10px;">Услуга:</div>
-        <div id="services">
-            <div class="service-item" onclick="selectService(this, 'Стрижка женская', 1500)">
-                <span>Стрижка женская</span>
-                <span>1500₽</span>
+        <!-- Выбор услуги -->
+        <span class="section-title">1. Выберите услугу</span>
+        <div class="card" id="services-list">
+            <div class="list-item" onclick="selectService(this, 'Стрижка женская', 1500)">
+                <span class="item-name">Стрижка женская</span>
+                <span class="item-price">1500₽</span>
             </div>
-            <div class="service-item" onclick="selectService(this, 'Маникюр', 2000)">
-                <span>Маникюр</span>
-                <span>2000₽</span>
+            <div class="list-item" onclick="selectService(this, 'Мужская стрижка', 1200)">
+                <span class="item-name">Мужская стрижка</span>
+                <span class="item-price">1200₽</span>
             </div>
-            <div class="service-item" onclick="selectService(this, 'Окрашивание', 5000)">
-                <span>Окрашивание</span>
-                <span>5000₽</span>
+            <div class="list-item" onclick="selectService(this, 'Маникюр с покрытием', 2000)">
+                <span class="item-name">Маникюр с покрытием</span>
+                <span class="item-price">2000₽</span>
+            </div>
+            <div class="list-item" onclick="selectService(this, 'Окрашивание', 5000)">
+                <span class="item-name">Окрашивание</span>
+                <span class="item-price">5000₽</span>
             </div>
         </div>
-    </div>
 
-    <!-- Выбор времени -->
-    <div class="card">
-        <div style="font-weight:bold; margin-bottom:10px;">Время (завтра):</div>
-        <div class="time-grid">
-            <div class="time-slot" onclick="selectTime(this, '10:00')">10:00</div>
-            <div class="time-slot" onclick="selectTime(this, '12:00')">12:00</div>
-            <div class="time-slot" onclick="selectTime(this, '14:00')">14:00</div>
-            <div class="time-slot" onclick="selectTime(this, '16:00')">16:00</div>
-            <div class="time-slot" onclick="selectTime(this, '18:00')">18:00</div>
-            <div class="time-slot" onclick="selectTime(this, '20:00')">20:00</div>
+        <!-- Выбор времени -->
+        <span class="section-title">2. Выберите время (завтра)</span>
+        <div class="card">
+            <div class="time-grid">
+                <div class="time-slot" onclick="selectTime(this, '10:00')">10:00</div>
+                <div class="time-slot" onclick="selectTime(this, '11:30')">11:30</div>
+                <div class="time-slot" onclick="selectTime(this, '13:00')">13:00</div>
+                <div class="time-slot" onclick="selectTime(this, '14:30')">14:30</div>
+                <div class="time-slot" onclick="selectTime(this, '16:00')">16:00</div>
+                <div class="time-slot" onclick="selectTime(this, '17:30')">17:30</div>
+                <div class="time-slot" onclick="selectTime(this, '19:00')">19:00</div>
+                <div class="time-slot" onclick="selectTime(this, '20:30')">20:30</div>
+            </div>
+        </div>
+
+        <!-- Ввод имени -->
+        <span class="section-title">3. Ваше имя</span>
+        <div class="input-group">
+            <input type="text" id="client-name" placeholder="Как к вам обращаться?" autocomplete="name">
         </div>
     </div>
-
-    <!-- Имя -->
-    <div class="card">
-        <div style="font-weight:bold;">Ваше имя:</div>
-        <input type="text" id="client-name" placeholder="Иван Иванов">
-    </div>
-
-    <button id="main-btn" onclick="sendData()">Записаться</button>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
+        
+        // Сообщаем телеграму, что приложение готово
+        tg.ready();
+        tg.expand(); // Раскрываем на весь экран
 
         let selectedService = null;
         let selectedTime = null;
 
+        const nameInput = document.getElementById('client-name');
+
+        // Функция выбора услуги
         function selectService(el, name, price) {
-            document.querySelectorAll('.service-item').forEach(i => i.classList.remove('selected'));
+            // Сброс стилей
+            document.querySelectorAll('.list-item').forEach(i => i.classList.remove('selected'));
+            // Установка нового
             el.classList.add('selected');
             selectedService = { name, price };
-            checkForm();
+            updateMainButton();
+            
+            // Вибрация при выборе (тактильный отклик)
+            tg.HapticFeedback.impactOccurred('light');
         }
 
+        // Функция выбора времени
         function selectTime(el, time) {
             document.querySelectorAll('.time-slot').forEach(i => i.classList.remove('selected'));
             el.classList.add('selected');
             selectedTime = time;
-            checkForm();
+            updateMainButton();
+            
+            tg.HapticFeedback.impactOccurred('light');
         }
 
-        function checkForm() {
-            const btn = document.getElementById('main-btn');
-            if (selectedService && selectedTime) {
-                btn.style.display = 'block';
-                tg.MainButton.show();
-                tg.MainButton.setText(`Записаться на ${selectedService.name} в ${selectedTime}`);
+        // Обновление главной кнопки
+        function updateMainButton() {
+            if (selectedService && selectedTime && nameInput.value.trim() !== "") {
+                const text = `Записаться на ${selectedService.name} в ${selectedTime}`;
+                
+                // Если кнопка еще не активна, показываем её
+                if (!tg.MainButton.isVisible) {
+                    tg.MainButton.show();
+                    tg.MainButton.setText(text);
+                } else {
+                    // Просто обновляем текст
+                    tg.MainButton.setText(text);
+                }
+                
+                tg.MainButton.enable(); // Делаем активной
+                tg.MainButton.setParams({ color: tg.themeParams.button_color || '#3390ec' });
+            } else {
+                // Если чего-то не хватает
+                tg.MainButton.disable(); // Делаем неактивной (серой)
+                if(selectedService && selectedTime) {
+                     tg.MainButton.setText("Введите имя для записи");
+                }
             }
         }
 
-        function sendData() {
-            const name = document.getElementById('client-name').value || "Аноним";
-            
+        // Слушаем ввод имени
+        nameInput.addEventListener('input', updateMainButton);
+
+        // Обработка нажатия на главную кнопку
+        tg.MainButton.onClick(function() {
+            if (!selectedService || !selectedTime) return;
+
+            const name = nameInput.value.trim();
+            if (!name) {
+                tg.showAlert("Пожалуйста, введите ваше имя!");
+                nameInput.focus();
+                return;
+            }
+
+            // Формируем данные
             const data = {
+                action: "booking",
                 service: selectedService.name,
                 price: selectedService.price,
                 time: selectedTime,
-                name: name
+                name: name,
+                date: "Завтра" // Можно добавить логику выбора даты
             };
 
             // Отправляем данные боту
             tg.sendData(JSON.stringify(data));
-        }
-
-        // Обработка нажатия на главную кнопку Telegram (внизу)
-        tg.MainButton.onClick(function() {
-            sendData();
         });
     </script>
 </body>
