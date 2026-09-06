@@ -13,19 +13,26 @@
         .option:active { opacity: 0.7; }
         .option.selected { border: 2px solid var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-color, #3390ec); font-weight: bold; }
         input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); font-size: 16px; }
-        #submit-btn { width: 100%; padding: 15px; background: var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        
+        #submit-btn {
+            width: 100%; padding: 15px; background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer;
+        }
         #submit-btn:disabled { background: #ccc; }
-        #status { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; color: green; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
 <body>
     <h2>💇‍♀️ Запись онлайн</h2>
+    
     <div class="card">
         <div style="margin-bottom:10px; font-weight:bold;">Услуга:</div>
         <div class="option" onclick="select(this, 'service', 'Стрижка', 1500)">Стрижка <span>1500₽</span></div>
         <div class="option" onclick="select(this, 'service', 'Маникюр', 2000)">Маникюр <span>2000₽</span></div>
         <div class="option" onclick="select(this, 'service', 'Окрашивание', 5000)">Окрашивание <span>5000₽</span></div>
     </div>
+
     <div class="card">
         <div style="margin-bottom:10px; font-weight:bold;">Время:</div>
         <div style="display:flex; gap:5px; flex-wrap:wrap;">
@@ -34,29 +41,29 @@
             <div class="option" style="flex:1; justify-content:center;" onclick="select(this, 'time', '18:00')">18:00</div>
         </div>
     </div>
+
     <div class="card">
         <input type="text" id="name" placeholder="Ваше имя" oninput="checkForm()">
     </div>
+
     <button id="submit-btn" onclick="sendData()" disabled>ЗАПИСАТЬСЯ</button>
     <div id="status"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
         tg.expand();
+        tg.ready();
         
-        // !!! ВСТАВЬ СЮДА ТОЧНО ТАКОЙ ЖЕ ТОКЕН, КАК В BOT.PY !!!
-        const API_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"; 
-        const CHANNEL_ID = "-1003932293179"; 
-
         let data = { service: null, price: null, time: null };
 
         function select(el, type, val, price) {
             let siblings = el.parentElement.children;
             for(let sib of siblings) sib.classList.remove('selected');
             el.classList.add('selected');
+            
             if(type === 'service') { data.service = val; data.price = price; }
             if(type === 'time') data.time = val;
+            
             checkForm();
             tg.HapticFeedback.impactOccurred('light');
         }
@@ -76,45 +83,25 @@
             status.innerText = "Отправка...";
 
             const result = {
+                action: "booking",
                 service: data.service,
                 price: data.price,
                 time: data.time,
                 name: name,
-                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Клиент"
+                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Аноним"
             };
-            const jsonString = JSON.stringify(result);
 
-            // СПОСОБ 1: Отправка боту (основной)
-            tg.sendData(jsonString);
-
-            // СПОСОБ 2: Прямая отправка в канал (страховка)
-            // Работает только если ты вставил токен выше
-            if (API_TOKEN !== "ВСТАВЬ_СЮДА_ТОКЕН_ИЗ_BOT_PY") {
-                const text = `🔥 <b>НОВАЯ ЗАПИСЬ (Direct)</b>\n👤 ${result.username}\n💇‍♀️ ${result.service}\n⏰ ${result.time}\n💰 ${result.price}₽`;
-                
-                fetch(`https://api.telegram.org/bot${API_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ chat_id: CHANNEL_ID, text: text, parse_mode: 'HTML' })
-                })
-                .then(res => {
-                    if(res.ok) {
-                        status.innerText = "✅ Успешно отправлено!";
-                        setTimeout(() => tg.close(), 1500);
-                    } else {
-                        status.innerText = "⚠️ Ошибка API";
-                        btn.disabled = false;
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    status.innerText = "⚠️ Ошибка сети";
-                    btn.disabled = false;
-                });
-            } else {
-                status.innerText = "⚠️ Нет токена в HTML!";
-                btn.disabled = false;
-            }
+            // ОТПРАВЛЯЕМ ДАННЫЕ БОТУ (Стандартный метод Telegram)
+            tg.sendData(JSON.stringify(result));
+            
+            // Показываем успех сразу, так как телеграм сам закроет окно после отправки
+            status.innerText = "✅ Отправлено!";
+            status.style.color = "green";
+            
+            // Закрываем приложение через 1 секунду
+            setTimeout(() => {
+                tg.close();
+            }, 1000);
         }
     </script>
 </body>
