@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Запись в Салон</title>
-    <!-- Подключаем Telegram WebApp -->
+    <!-- Скрипт Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -23,6 +23,7 @@
             margin: 0;
             padding: 20px;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         h2 { margin-top: 0; font-size: 22px; font-weight: 800; margin-bottom: 5px; }
@@ -105,7 +106,7 @@
             border-color: var(--button-color);
         }
 
-        /* Кнопка отправки внутри страницы */
+        /* Кнопка отправки */
         #submit-btn {
             width: 100%;
             padding: 16px;
@@ -185,10 +186,10 @@
         tg.expand();
 
         // ==========================================
-        // ⚠️ ВСТАВЬ СЮДА СВОИ ДАННЫЕ (ОБЯЗАТЕЛЬНО) ⚠️
+        // ⚠️ НАСТРОЙКИ (ЗАПОЛНИ ЭТИ ДАННЫЕ!) ⚠️
         // ==========================================
-        const BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"; 
-        const CHANNEL_ID = "-1003932293179"; 
+        const BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"; // ВСТАВЬ СЮДА ТОЧНО ТАКОЙ ЖЕ ТОКЕН, КАК В bot.py
+        const CHANNEL_ID = "-1003932293179";     // ID канала (должен совпадать с bot.py)
         // ==========================================
 
         let selectedService = null;
@@ -198,7 +199,6 @@
         const statusDiv = document.getElementById('status');
 
         function select(el, type, val, price) {
-            // Снимаем выделение с соседей
             let parent = el.parentElement;
             Array.from(parent.children).forEach(child => child.classList.remove('selected'));
             
@@ -250,12 +250,13 @@
                 username: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Клиент"
             };
 
-            // СПОСОБ 1: Отправляем данные боту через стандартный метод (он поймает web_app_data)
+            console.log("🚀 Отправка данных:", result);
+
+            // СПОСОБ 1: Отправляем данные боту (он поймает web_app_data)
             tg.sendData(JSON.stringify(result));
 
-            // СПОСОБ 2: Прямая отправка в канал (Дубль надежности)
-            // Работает даже если бот "спит", но требует правильный токен здесь
-            if (BOT_TOKEN !== "ВСТАВЬ_СЮДА_ТОКЕН_БОТА" && BOT_TOKEN.length > 10) {
+            // СПОСОБ 2: Прямая отправка в канал (Страховка)
+            if (BOT_TOKEN.includes(":") && BOT_TOKEN.length > 20) {
                 const text = 
                     `🔥 <b>НОВАЯ ЗАПИСЬ (Direct)</b>\n\n` +
                     `👤 <b>Клиент:</b> ${result.username} (${result.name})\n` +
@@ -277,6 +278,9 @@
                         statusDiv.innerText = "✅ Успешно отправлено!";
                         statusDiv.style.color = "green";
                         
+                        // Вибрация успеха
+                        tg.HapticFeedback.notificationOccurred('success');
+                        
                         // Закрываем приложение через 1.5 сек
                         setTimeout(() => tg.close(), 1500);
                     } else {
@@ -284,6 +288,7 @@
                         statusDiv.style.color = "red";
                         submitBtn.disabled = false;
                         console.error("Telegram API Error:", response);
+                        tg.showAlert("Ошибка отправки. Проверьте консоль или попробуйте позже.");
                     }
                 })
                 .catch(err => {
@@ -291,11 +296,13 @@
                     statusDiv.innerText = "⚠️ Ошибка соединения";
                     statusDiv.style.color = "red";
                     submitBtn.disabled = false;
+                    tg.showAlert("Нет соединения с интернетом.");
                 });
             } else {
                 statusDiv.innerText = "⚠️ Нет токена в настройках HTML";
                 statusDiv.style.color = "red";
                 submitBtn.disabled = false;
+                tg.showAlert("Ошибка конфигурации: Не указан токен в HTML файле.");
             }
         }
     </script>
