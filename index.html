@@ -9,18 +9,17 @@
         body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); margin: 0; padding: 20px; }
         h2 { margin-top: 0; }
         .card { background: var(--tg-theme-secondary-bg-color, #f0f0f0); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .option { display: flex; justify-content: space-between; padding: 12px; background: var(--tg-theme-bg-color, #fff); margin-bottom: 8px; border-radius: 8px; cursor: pointer; }
+        .option { display: flex; justify-content: space-between; padding: 12px; background: var(--tg-theme-bg-color, #fff); margin-bottom: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .option.selected { border: 2px solid var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-color, #3390ec); font-weight: bold; }
-        input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); font-size: 16px; }
         
-        /* Кнопка внутри приложения */
         #submit-btn {
             width: 100%; padding: 15px; background: var(--tg-theme-button-color, #3390ec);
             color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px;
-            font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer;
+            font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; opacity: 0.5; pointer-events: none;
         }
-        #submit-btn:disabled { background: #ccc; }
-        #status { text-align: center; margin-top: 10px; font-weight: bold; }
+        #submit-btn.active { opacity: 1; pointer-events: all; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
 <body>
@@ -47,17 +46,21 @@
         <input type="text" id="name" placeholder="Ваше имя" oninput="checkForm()">
     </div>
 
-    <button id="submit-btn" onclick="sendData()" disabled>ЗАПИСАТЬСЯ</button>
+    <button id="submit-btn" onclick="sendData()">ЗАПИСАТЬСЯ</button>
     <div id="status"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.ready();
         tg.expand();
+        
+        // ВАЖНО: Вставь сюда ТОКЕН своего бота, чтобы работал прямой запрос
+        const BOT_TOKEN = "8717717565:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"; 
+        // Примечание: В продакшене токен лучше скрывать на бэкенде, но для MVP и работы без сервера это необходимо
         
         let data = { service: null, price: null, time: null };
 
         function select(el, type, val, price) {
-            // Снимаем выделение с соседей
             let siblings = el.parentElement.children;
             for(let sib of siblings) sib.classList.remove('selected');
             el.classList.add('selected');
@@ -72,34 +75,64 @@
         function checkForm() {
             const name = document.getElementById('name').value;
             const btn = document.getElementById('submit-btn');
-            btn.disabled = !(data.service && data.time && name.length > 0);
+            if(data.service && data.time && name.length > 0) {
+                btn.classList.add('active');
+                btn.innerText = `Записаться на ${data.time}`;
+            } else {
+                btn.classList.remove('active');
+            }
         }
 
-        function sendData() {
+        async function sendData() {
             const name = document.getElementById('name').value;
             const btn = document.getElementById('submit-btn');
             const status = document.getElementById('status');
             
             btn.disabled = true;
-            status.innerText = "Отправка...";
-
-            const result = {
-                type: "NEW_BOOKING",
+            btn.innerText = "Отправка...";
+            
+            const booking = {
                 name: name,
                 service: data.service,
                 price: data.price,
                 time: data.time,
-                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Аноним"
+                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Клиент"
             };
 
-            // ГЛАВНОЕ: Отправляем данные боту через встроенный метод
-            tg.sendData(JSON.stringify(result));
-            
-            // Для надежности, если приложение открыто в браузере (не в ТГ), покажем алерт
-            setTimeout(() => {
-                status.innerText = "✅ Заявка отправлена!";
-                status.style.color = "green";
-            }, 1000);
+            // СПОСОБ 1: Прямой HTTP запрос (Самый надежный!)
+            try {
+                const messageText = `🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n👤 ${booking.username} (${booking.name})\n💇‍♀️ ${booking.service} (${booking.price}₽)\n⏰ ${booking.time}`;
+                
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                const params = {
+                    chat_id: tg.initDataUnsafe.user.id, // Сначала шлем себе в личку для теста, бот перешлет в канал
+                    text: messageText,
+                    parse_mode: "HTML"
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(params)
+                });
+
+                if (response.ok) {
+                    status.innerText = "✅ Успешно! Ждите подтверждения.";
+                    status.style.color = "green";
+                    
+                    // Дополнительно пробуем стандартный метод для красоты закрытия окна
+                    tg.sendData(JSON.stringify(booking));
+                    setTimeout(() => tg.close(), 1500);
+                } else {
+                    throw new Error("Network error");
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = "❌ Ошибка сети. Попробуйте еще раз.";
+                status.style.color = "red";
+                btn.disabled = false;
+                btn.innerText = "ПОПРОБОВАТЬ СНОВА";
+            }
         }
     </script>
 </body>
