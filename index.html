@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запись в Салон</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); padding: 20px; margin: 0; }
+        h2 { text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; background: var(--tg-theme-secondary-bg-color, #f5f5f5); color: var(--tg-theme-text-color, #000); }
+        
+        /* Большая кнопка внизу */
+        #submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        #submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .success-message { display: none; text-align: center; color: green; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h2>💇‍♀️ Запись онлайн</h2>
+    
+    <div id="booking-form">
+        <div class="form-group">
+            <label>Услуга:</label>
+            <select id="service">
+                <option value="Стрижка женская - 1500₽">Стрижка женская (1500₽)</option>
+                <option value="Стрижка мужская - 1200₽">Стрижка мужская (1200₽)</option>
+                <option value="Маникюр - 2000₽">Маникюр (2000₽)</option>
+                <option value="Окрашивание - 5000₽">Окрашивание (5000₽)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Дата и время:</label>
+            <input type="datetime-local" id="datetime">
+        </div>
+
+        <div class="form-group">
+            <label>Ваше имя:</label>
+            <input type="text" id="name" placeholder="Иван Иванов">
+        </div>
+
+        <div class="form-group">
+            <label>Телефон:</label>
+            <input type="tel" id="phone" placeholder="+7 999 000 00 00">
+        </div>
+
+        <button id="submit-btn" onclick="sendData()">ЗАПИСАТЬСЯ</button>
+    </div>
+
+    <div id="success" class="success-message">
+        <h3>✅ Заявка отправлена!</h3>
+        <p>Администратор скоро свяжется с вами.</p>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Установка минимальной даты (сегодня)
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('datetime').min = now.toISOString().slice(0,16);
+
+        function sendData() {
+            const service = document.getElementById('service').value;
+            const datetime = document.getElementById('datetime').value;
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+
+            if (!name || !datetime || !phone) {
+                tg.showAlert("Пожалуйста, заполните все поля!");
+                return;
+            }
+
+            const data = {
+                type: "NEW_LEAD",
+                service: service,
+                datetime: datetime.replace('T', ' '),
+                name: name,
+                phone: phone,
+                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'unknown'
+            };
+
+            // Отправляем данные боту
+            tg.sendData(JSON.stringify(data));
+            
+            // Показываем экран успеха
+            document.getElementById('booking-form').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+            
+            // Закрываем окно через 2 секунды (опционально)
+            setTimeout(() => { tg.close(); }, 2000);
+        }
+    </script>
+</body>
+</html>
