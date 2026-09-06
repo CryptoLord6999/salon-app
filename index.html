@@ -56,7 +56,7 @@
         tg.expand();
         
         // !!! ВСТАВЬ СЮДА СВОЙ ТОКЕН И ID КАНАЛА (как в bot.py) !!!
-        const API_TOKEN = "8717717565:AAEwrbJp2OZ9Azt3uoy9fNR6hGZcEJpKL3Y"; 
+        const API_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"; 
         const CHANNEL_ID = "-1003932293179"; 
         // -------------------------------------------------------
 
@@ -101,7 +101,7 @@
 
             // СПОСОБ 2: Прямая отправка в канал через API (Дубль надежности)
             // Это гарантирует, что заявка уйдет, даже если бот "спит" или глючит
-            if (API_TOKEN !== "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН") {
+            if (API_TOKEN !== "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM") {
                 const text = `🔥 <b>НОВАЯ ЗАПИСЬ (Direct)</b>\n👤 ${result.username}\n💇‍♀️ ${result.service}\n⏰ ${result.time}`;
                 
                 fetch(`https://api.telegram.org/bot${API_TOKEN}/sendMessage`, {
