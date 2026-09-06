@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Запись</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); margin: 0; padding: 20px; }
+        h2 { margin-top: 0; }
+        .card { background: var(--tg-theme-secondary-bg-color, #f0f0f0); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .option { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer; }
+        .option:last-child { border: none; }
+        .option.active { color: var(--tg-theme-button-color, #2481cc); font-weight: bold; }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .time-btn { background: var(--tg-theme-bg-color, #fff); border: 1px solid #ddd; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; }
+        .time-btn.active { background: var(--tg-theme-button-color, #2481cc); color: #fff; border-color: var(--tg-theme-button-color, #2481cc); }
+        input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        
+        /* Большая кнопка внизу экрана */
+        #submit-btn {
+            position: fixed; bottom: 20px; left: 20px; right: 20px;
+            background: var(--tg-theme-button-color, #2481cc); color: #fff;
+            border: none; padding: 15px; border-radius: 12px; font-size: 18px; font-weight: bold;
+            display: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        #submit-btn:active { opacity: 0.8; transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+    <h2>💇‍♀️ Запись онлайн</h2>
+    
+    <div class="card">
+        <b>1. Услуга</b>
+        <div id="services">
+            <div class="option" onclick="selectService(this, 'Стрижка', 1500)">Стрижка <span>1500₽</span></div>
+            <div class="option" onclick="selectService(this, 'Маникюр', 2000)">Маникюр <span>2000₽</span></div>
+            <div class="option" onclick="selectService(this, 'Окрашивание', 5000)">Окрашивание <span>5000₽</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <b>2. Время</b>
+        <div class="time-grid">
+            <div class="time-btn" onclick="selectTime(this, '10:00')">10:00</div>
+            <div class="time-btn" onclick="selectTime(this, '14:00')">14:00</div>
+            <div class="time-btn" onclick="selectTime(this, '18:00')">18:00</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <b>3. Ваше имя</b>
+        <input type="text" id="name" placeholder="Иван" oninput="checkForm()">
+    </div>
+
+    <button id="submit-btn" onclick="sendData()">ЗАПИСАТЬСЯ</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        let service = null, time = null;
+        const btn = document.getElementById('submit-btn');
+        const nameInput = document.getElementById('name');
+
+        function selectService(el, name, price) {
+            document.querySelectorAll('#services .option').forEach(e => e.classList.remove('active'));
+            el.classList.add('active');
+            service = { name, price };
+            checkForm();
+        }
+
+        function selectTime(el, t) {
+            document.querySelectorAll('.time-btn').forEach(e => e.classList.remove('active'));
+            el.classList.add('active');
+            time = t;
+            checkForm();
+        }
+
+        function checkForm() {
+            if (service && time && nameInput.value.trim().length > 0) {
+                btn.style.display = 'block';
+                tg.MainButton.show();
+                tg.MainButton.setText(`ЗАПИСАТЬСЯ НА ${service.name}`);
+                tg.MainButton.enable();
+            } else {
+                btn.style.display = 'none';
+                tg.MainButton.disable();
+            }
+        }
+
+        function sendData() {
+            const data = {
+                action: "booking",
+                name: nameInput.value.trim(),
+                service: service.name,
+                price: service.price,
+                time: time
+            };
+            
+            // Блокируем кнопку, чтобы не нажать дважды
+            btn.disabled = true;
+            btn.textContent = "ОТПРАВЛЕНО...";
+            tg.MainButton.hide();
+            
+            tg.sendData(JSON.stringify(data));
+            
+            // Небольшая задержка перед закрытием, чтобы пользователь увидел эффект
+            setTimeout(() => { tg.close(); }, 500);
+        }
+
+        tg.MainButton.onClick(sendData);
+    </script>
+</body>
+</html>
