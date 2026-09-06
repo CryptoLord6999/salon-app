@@ -3,58 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Запись</title>
+    <title>Запись в Салон</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-            margin: 0; padding: 20px;
-        }
+        body { font-family: -apple-system, sans-serif; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); margin: 0; padding: 20px; }
         h2 { margin-top: 0; }
-        .card {
-            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .option {
-            padding: 12px;
-            background: var(--tg-theme-bg-color, #fff);
-            margin-bottom: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex; justify-content: space-between;
-        }
-        .option.selected {
-            border: 2px solid var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-color, #3390ec);
-            font-weight: bold;
-        }
-        input {
-            width: 100%; padding: 12px;
-            border-radius: 8px; border: 1px solid #ccc;
-            background: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-            box-sizing: border-box;
-        }
-        /* ГЛАВНАЯ КНОПКА ВНУТРИ СТРАНИЦЫ */
+        .card { background: var(--tg-theme-secondary-bg-color, #f0f0f0); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .option { display: flex; justify-content: space-between; padding: 12px; background: var(--tg-theme-bg-color, #fff); margin-bottom: 8px; border-radius: 8px; cursor: pointer; }
+        .option.selected { border: 2px solid var(--tg-theme-button-color, #3390ec); color: var(--tg-theme-button-color, #3390ec); font-weight: bold; }
+        input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+        
+        /* Кнопка внутри приложения */
         #submit-btn {
-            width: 100%;
-            padding: 15px;
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #fff);
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 20px;
-            cursor: pointer;
-            display: none; /* Скрыта пока не заполнено */
+            width: 100%; padding: 15px; background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer;
         }
-        #submit-btn:active { opacity: 0.8; }
-        .hidden { display: none; }
+        #submit-btn:disabled { background: #ccc; }
+        #status { text-align: center; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -63,24 +29,26 @@
     
     <div class="card">
         <div style="margin-bottom:10px; font-weight:bold;">Услуга:</div>
-        <div class="option" onclick="select('service', this, 'Стрижка', 1500)">Стрижка <span>1500₽</span></div>
-        <div class="option" onclick="select('service', this, 'Маникюр', 2000)">Маникюр <span>2000₽</span></div>
-        <div class="option" onclick="select('service', this, 'Окрашивание', 5000)">Окрашивание <span>5000₽</span></div>
+        <div class="option" onclick="select(this, 'service', 'Стрижка', 1500)">Стрижка <span>1500₽</span></div>
+        <div class="option" onclick="select(this, 'service', 'Маникюр', 2000)">Маникюр <span>2000₽</span></div>
+        <div class="option" onclick="select(this, 'service', 'Окрашивание', 5000)">Окрашивание <span>5000₽</span></div>
     </div>
 
     <div class="card">
         <div style="margin-bottom:10px; font-weight:bold;">Время:</div>
-        <div class="option" onclick="select('time', this, '10:00')">10:00</div>
-        <div class="option" onclick="select('time', this, '14:00')">14:00</div>
-        <div class="option" onclick="select('time', this, '18:00')">18:00</div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+            <div class="option" style="flex:1;" onclick="select(this, 'time', '10:00')">10:00</div>
+            <div class="option" style="flex:1;" onclick="select(this, 'time', '14:00')">14:00</div>
+            <div class="option" style="flex:1;" onclick="select(this, 'time', '18:00')">18:00</div>
+        </div>
     </div>
 
     <div class="card">
-        <div style="margin-bottom:10px; font-weight:bold;">Ваше имя:</div>
-        <input type="text" id="name" placeholder="Иван" oninput="check()">
+        <input type="text" id="name" placeholder="Ваше имя" oninput="checkForm()">
     </div>
 
-    <button id="submit-btn" onclick="sendData()">ЗАПИСАТЬСЯ</button>
+    <button id="submit-btn" onclick="sendData()" disabled>ЗАПИСАТЬСЯ</button>
+    <div id="status"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -88,57 +56,50 @@
         
         let data = { service: null, price: null, time: null };
 
-        function select(type, el, val, price) {
-            // Сброс выделения в группе
-            let parent = el.parentElement;
-            Array.from(parent.children).forEach(c => c.classList.remove('selected'));
+        function select(el, type, val, price) {
+            // Снимаем выделение с соседей
+            let siblings = el.parentElement.children;
+            for(let sib of siblings) sib.classList.remove('selected');
             el.classList.add('selected');
-
-            if(type === 'service') {
-                data.service = val;
-                data.price = price;
-            } else {
-                data.time = val;
-            }
-            check();
+            
+            if(type === 'service') { data.service = val; data.price = price; }
+            if(type === 'time') data.time = val;
+            
+            checkForm();
+            tg.HapticFeedback.impactOccurred('light');
         }
 
-        function check() {
+        function checkForm() {
             const name = document.getElementById('name').value;
             const btn = document.getElementById('submit-btn');
-            if(data.service && data.time && name.length > 2) {
-                btn.style.display = 'block';
-                btn.innerText = `Записаться на ${data.service} (${data.time})`;
-            } else {
-                btn.style.display = 'none';
-            }
+            btn.disabled = !(data.service && data.time && name.length > 0);
         }
 
         function sendData() {
             const name = document.getElementById('name').value;
+            const btn = document.getElementById('submit-btn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.innerText = "Отправка...";
+
             const result = {
+                type: "NEW_BOOKING",
                 name: name,
                 service: data.service,
+                price: data.price,
                 time: data.time,
-                price: data.price
+                username: tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Аноним"
             };
-            
-            // Блокируем кнопку
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.innerText = "Отправка...";
 
-            // ОТПРАВЛЯЕМ ДАННЫЕ БОТУ
+            // ГЛАВНОЕ: Отправляем данные боту через встроенный метод
             tg.sendData(JSON.stringify(result));
             
-            // Показываем стандартное окно успеха Telegram
-            tg.showPopup({
-                title: 'Готово!',
-                message: 'Ваша заявка отправлена администратору.',
-                buttons: [{type: 'ok'}]
-            }, () => {
-                tg.close(); // Закрываем приложение
-            });
+            // Для надежности, если приложение открыто в браузере (не в ТГ), покажем алерт
+            setTimeout(() => {
+                status.innerText = "✅ Заявка отправлена!";
+                status.style.color = "green";
+            }, 1000);
         }
     </script>
 </body>
