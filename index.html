@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Запись в Салон</title>
+    <!-- Скрипт Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #000000);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --button-color: var(--tg-theme-button-color, #3390ec);
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+            --secondary-bg-color: var(--tg-theme-secondary-bg-color, #f4f4f5);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h2 { margin-top: 0; font-size: 22px; font-weight: 800; margin-bottom: 5px; }
+        p.subtitle { color: var(--hint-color); font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+
+        .card {
+            background-color: var(--secondary-bg-color);
+            border-radius: 14px;
+            padding: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .option:last-child { border-bottom: none; }
+        .option:active { opacity: 0.7; }
+        
+        .option.selected {
+            background-color: rgba(51, 144, 236, 0.1);
+        }
+        
+        .option.selected span:first-child {
+            color: var(--button-color);
+            font-weight: 600;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .time-slot {
+            background-color: var(--bg-color);
+            border-radius: 10px;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .time-slot.selected {
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+        }
+
+        .input-group {
+            padding: 12px 16px;
+            background-color: var(--bg-color);
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(128,128,128, 0.2);
+            background-color: var(--secondary-bg-color);
+            color: var(--text-color);
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--button-color);
+        }
+
+        /* Кнопка отправки */
+        #submit-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: opacity 0.2s;
+        }
+
+        #submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        #status {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>💇‍♀️ Запись онлайн</h2>
+    <p class="subtitle">Выберите услугу и время</p>
+
+    <!-- Выбор услуги -->
+    <div class="card" id="services-list">
+        <div class="option" onclick="select(this, 'service', 'Стрижка женская', 1500)">
+            <span>Стрижка женская</span><span>1500₽</span>
+        </div>
+        <div class="option" onclick="select(this, 'service', 'Мужская стрижка', 1200)">
+            <span>Мужская стрижка</span><span>1200₽</span>
+        </div>
+        <div class="option" onclick="select(this, 'service', 'Маникюр', 2000)">
+            <span>Маникюр</span><span>2000₽</span>
+        </div>
+        <div class="option" onclick="select(this, 'service', 'Окрашивание', 5000)">
+            <span>Окрашивание</span><span>5000₽</span>
+        </div>
+    </div>
+
+    <!-- Выбор времени -->
+    <p class="subtitle" style="margin-bottom: 10px;">Время приема:</p>
+    <div class="card">
+        <div class="time-grid">
+            <div class="time-slot" onclick="selectTime(this, '10:00')">10:00</div>
+            <div class="time-slot" onclick="selectTime(this, '12:00')">12:00</div>
+            <div class="time-slot" onclick="selectTime(this, '14:00')">14:00</div>
+            <div class="time-slot" onclick="selectTime(this, '16:00')">16:00</div>
+            <div class="time-slot" onclick="selectTime(this, '18:00')">18:00</div>
+            <div class="time-slot" onclick="selectTime(this, '20:00')">20:00</div>
+        </div>
+    </div>
+
+    <!-- Ввод имени -->
+    <p class="subtitle" style="margin-bottom: 10px;">Ваше имя:</p>
+    <div class="input-group">
+        <input type="text" id="name" placeholder="Иван Иванов" oninput="checkForm()">
+    </div>
+
+    <!-- Кнопка отправки -->
+    <button id="submit-btn" onclick="sendData()" disabled>ЗАПИСАТЬСЯ</button>
+    <div id="status"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // ==========================================
+        // ⚠️ НАСТРОЙКИ (ЗАПОЛНИ ЭТИ ДАННЫЕ!) ⚠️
+        // ==========================================
+        const BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"; // ВСТАВЬ СЮДА ТОЧНО ТАКОЙ ЖЕ ТОКЕН, КАК В bot.py
+        const CHANNEL_ID = "-1003932293179";     // ID канала (должен совпадать с bot.py)
+        // ==========================================
+
+        let selectedService = null;
+        let selectedTime = null;
+        const nameInput = document.getElementById('name');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusDiv = document.getElementById('status');
+
+        function select(el, type, val, price) {
+            let parent = el.parentElement;
+            Array.from(parent.children).forEach(child => child.classList.remove('selected'));
+            
+            el.classList.add('selected');
+            
+            if(type === 'service') {
+                selectedService = { name: val, price: price };
+            }
+            
+            checkForm();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function selectTime(el, time) {
+            let parent = el.parentElement;
+            Array.from(parent.children).forEach(child => child.classList.remove('selected'));
+            
+            el.classList.add('selected');
+            selectedTime = time;
+            
+            checkForm();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function checkForm() {
+            const isReady = selectedService && selectedTime && nameInput.value.trim().length > 0;
+            submitBtn.disabled = !isReady;
+        }
+
+        function sendData() {
+            if (!selectedService || !selectedTime) return;
+            
+            const name = nameInput.value.trim();
+            if (!name) {
+                tg.showAlert("Пожалуйста, введите имя!");
+                return;
+            }
+
+            // Блокируем кнопку
+            submitBtn.disabled = true;
+            statusDiv.innerText = "Отправка...";
+            statusDiv.style.color = "var(--tg-theme-hint-color)";
+
+            const result = {
+                service: selectedService.name,
+                price: selectedService.price,
+                time: selectedTime,
+                name: name,
+                username: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Клиент"
+            };
+
+            console.log("🚀 Отправка данных:", result);
+
+            // СПОСОБ 1: Отправляем данные боту (он поймает web_app_data)
+            tg.sendData(JSON.stringify(result));
+
+            // СПОСОБ 2: Прямая отправка в канал (Страховка)
+            if (BOT_TOKEN.includes(":") && BOT_TOKEN.length > 20) {
+                const text = 
+                    `🔥 <b>НОВАЯ ЗАПИСЬ (Direct)</b>\n\n` +
+                    `👤 <b>Клиент:</b> ${result.username} (${result.name})\n` +
+                    `💇‍♀️ <b>Услуга:</b> ${result.service}\n` +
+                    `⏰ <b>Время:</b> ${result.time}\n` +
+                    `💰 <b>Цена:</b> ${result.price}₽`;
+
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chat_id: CHANNEL_ID,
+                        text: text,
+                        parse_mode: 'HTML'
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        statusDiv.innerText = "✅ Успешно отправлено!";
+                        statusDiv.style.color = "green";
+                        
+                        // Вибрация успеха
+                        tg.HapticFeedback.notificationOccurred('success');
+                        
+                        // Закрываем приложение через 1.5 сек
+                        setTimeout(() => tg.close(), 1500);
+                    } else {
+                        statusDiv.innerText = "⚠️ Ошибка сети (проверь токен)";
+                        statusDiv.style.color = "red";
+                        submitBtn.disabled = false;
+                        console.error("Telegram API Error:", response);
+                        tg.showAlert("Ошибка отправки. Проверьте консоль или попробуйте позже.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Fetch Error:", err);
+                    statusDiv.innerText = "⚠️ Ошибка соединения";
+                    statusDiv.style.color = "red";
+                    submitBtn.disabled = false;
+                    tg.showAlert("Нет соединения с интернетом.");
+                });
+            } else {
+                statusDiv.innerText = "⚠️ Нет токена в настройках HTML";
+                statusDiv.style.color = "red";
+                submitBtn.disabled = false;
+                tg.showAlert("Ошибка конфигурации: Не указан токен в HTML файле.");
+            }
+        }
+    </script>
+</body>
+</html>
