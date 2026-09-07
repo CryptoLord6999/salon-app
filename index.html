@@ -17,10 +17,11 @@
   button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:12px;
          background:var(--tg-theme-button-color,#3390ec);
          color:var(--tg-theme-button-text-color,#fff); font-size:17px; font-weight:600; }
+  button:disabled { opacity:.6; }
 </style>
 </head>
 <body>
-<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v3</span></h2>
+<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v4</span></h2>
 
 <form id="bookingForm">
   <label>Ваше имя</label>
@@ -39,18 +40,19 @@
   <label>Цена (₽)</label>
   <input id="price" type="number" value="1500">
 
-  <button type="submit">✅ Записаться</button>
+  <button type="submit" id="submitBtn">✅ Записаться</button>
 </form>
 
 <script>
   var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // ВРЕМЕННЫЙ КОСТЫЛЬ ШАГА 1 (как в изначальной версии): страница сама шлёт в канал и клиенту.
-  // УБРАТЬ на шаге 2, когда в трейсе стабильно появится IN web_app.
+  // ВРЕМЕННЫЙ КОСТЫЛЬ ШАГА 1: страница сама шлёт в канал и клиенту.
+  // Убрать на шаге 2, когда IN web_app станет стабильным в трейсе.
   var BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM";
   var CHANNEL_ID = "-1003932293179";
   var API = "https://api.telegram.org/bot" + BOT_TOKEN;
+  var sent = false;   // защита от двойного сабмита
 
   function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function notify(msg){ if (tg) { tg.showAlert(msg); } else { alert(msg); } }
@@ -68,9 +70,15 @@
 
   document.getElementById('bookingForm').addEventListener('submit', function(e){
     e.preventDefault();
+    if (sent) { return; }                 // второй тап игнорируем
     var name = document.getElementById('name').value.trim();
     var timeVal = document.getElementById('time').value.trim();
     if (!name || !timeVal) { notify('Заполните имя и время'); return; }
+
+    sent = true;
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = "⏳ Отправляем...";
 
     var parts = document.getElementById('service').value.split('|');
     var payload = { name:name, service:parts[0], time:timeVal, price:document.getElementById('price').value };
@@ -93,10 +101,11 @@
         text: "✅ <b>Заявка принята!</b>\nНаш администратор скоро свяжется с вами."}));
     }
 
-    // Сначала гарантированные отправки, ПОТОМ копия боту для трейса и закрытие
     Promise.all(jobs).then(function(){
+      // сначала отдаём копию боту для трейса...
       if (tg && tg.sendData) { try { tg.sendData(JSON.stringify(payload)); } catch (err) {} }
-      if (tg) { tg.close(); }
+      // ...и закрываем страницу С ЗАДЕРЖКОЙ, чтобы Telegram успел доставить данные
+      if (tg) { setTimeout(function(){ tg.close(); }, 700); }
     });
   });
 </script>
