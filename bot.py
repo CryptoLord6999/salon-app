@@ -3,7 +3,7 @@ import json
 import time
 
 # ================= НАСТРОЙКИ =================
-BOT_TOKEN = "8717717565:AAEwrbJp2OZ9Azt3uoy9fNR6hGZcEJpKL3Y"  # Токен от @BotFather
+BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM"  # Токен от @BotFather
 CHANNEL_ID = "-1003932293179"          # ID твоего канала (начинается с -100)
 WEB_APP_URL = "https://cryptolord6999.github.io/salon-app/" # Ссылка на твой GitHub Pages
 # =============================================
