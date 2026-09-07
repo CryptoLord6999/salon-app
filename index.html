@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Запись в салон</title>
-<!-- ОБЯЗАТЕЛЬНО: SDK Telegram Web App -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   body { margin:0; padding:16px; font-family:-apple-system,sans-serif;
@@ -21,7 +20,7 @@
 </style>
 </head>
 <body>
-<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v2</span></h2>
+<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v3</span></h2>
 
 <form id="bookingForm">
   <label>Ваше имя</label>
@@ -47,35 +46,58 @@
   var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // цена подставляется при выборе услуги
-  document.getElementById('service').addEventListener('change', function () {
+  // ВРЕМЕННЫЙ КОСТЫЛЬ ШАГА 1 (как в изначальной версии): страница сама шлёт в канал и клиенту.
+  // УБРАТЬ на шаге 2, когда в трейсе стабильно появится IN web_app.
+  var BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM";
+  var CHANNEL_ID = "-1003932293179";
+  var API = "https://api.telegram.org/bot" + BOT_TOKEN;
+
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function notify(msg){ if (tg) { tg.showAlert(msg); } else { alert(msg); } }
+  function tgSend(method, payload){
+    return fetch(API + "/" + method, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); }).catch(function(){ return {ok:false}; });
+  }
+
+  document.getElementById('service').addEventListener('change', function(){
     document.getElementById('price').value = this.value.split('|')[1] || '';
   });
 
-  document.getElementById('bookingForm').addEventListener('submit', function (e) {
-    e.preventDefault();  // КЛЮЧЕВОЕ: страница НЕ перезагружается и НИЧЕГО не шлёт сама
-
+  document.getElementById('bookingForm').addEventListener('submit', function(e){
+    e.preventDefault();
     var name = document.getElementById('name').value.trim();
-    var time = document.getElementById('time').value.trim();
-    if (!name || !time) {
-      if (tg) { tg.showAlert('Заполните имя и время'); } else { alert('Заполните имя и время'); }
-      return;
-    }
-    if (!tg || !tg.sendData) {
-      alert('Старая версия страницы или открыто вне Telegram. Открой через кнопку «Записаться» в боте.');
-      return;
-    }
+    var timeVal = document.getElementById('time').value.trim();
+    if (!name || !timeVal) { notify('Заполните имя и время'); return; }
 
     var parts = document.getElementById('service').value.split('|');
-    var payload = {
-      name:    name,
-      service: parts[0],
-      time:    time,
-      price:   document.getElementById('price').value
-    };
+    var payload = { name:name, service:parts[0], time:timeVal, price:document.getElementById('price').value };
+    var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
 
-    tg.sendData(JSON.stringify(payload));  // <-- ЕДИНСТВЕННАЯ отправка: данные уходят БОТУ
-    tg.close();                            // закрываем Web App
+    var channelText =
+      "🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n" +
+      "👤 <b>Клиент:</b> " + esc(user ? (user.first_name || 'Клиент') : 'Клиент') +
+      (user ? " (<code>" + user.id + "</code>)" : "") + "\n" +
+      "📝 <b>Данные:</b>\n" +
+      " • Услуга: " + esc(payload.service) + "\n" +
+      " • Время: " + esc(payload.time) + "\n" +
+      " • Цена: " + esc(payload.price) + "₽\n" +
+      " • Имя: " + esc(payload.name) + "\n\n" +
+      "📞 Свяжитесь с клиентом для подтверждения!";
+
+    var jobs = [ tgSend("sendMessage", {chat_id: CHANNEL_ID, text: channelText, parse_mode: "HTML"}) ];
+    if (user) {
+      jobs.push(tgSend("sendMessage", {chat_id: user.id, parse_mode: "HTML",
+        text: "✅ <b>Заявка принята!</b>\nНаш администратор скоро свяжется с вами."}));
+    }
+
+    // Сначала гарантированные отправки, ПОТОМ копия боту для трейса и закрытие
+    Promise.all(jobs).then(function(){
+      if (tg && tg.sendData) { try { tg.sendData(JSON.stringify(payload)); } catch (err) {} }
+      if (tg) { tg.close(); }
+    });
   });
 </script>
 </body>
