@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Запись в салон</title>
+<!-- ОБЯЗАТЕЛЬНО: SDK Telegram Web App -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body { margin:0; padding:16px; font-family:-apple-system,sans-serif;
+         background:var(--tg-theme-bg-color,#111); color:var(--tg-theme-text-color,#fff); }
+  h2 { margin-top:0; }
+  label { display:block; margin:12px 0 4px; font-size:14px; opacity:.8; }
+  input, select { width:100%; box-sizing:border-box; padding:12px; border-radius:10px;
+         border:1px solid var(--tg-theme-hint-color,#444);
+         background:var(--tg-theme-secondary-bg-color,#1c1c1e);
+         color:var(--tg-theme-text-color,#fff); font-size:16px; }
+  button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:12px;
+         background:var(--tg-theme-button-color,#3390ec);
+         color:var(--tg-theme-button-text-color,#fff); font-size:17px; font-weight:600; }
+</style>
+</head>
+<body>
+<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v2</span></h2>
+
+<form id="bookingForm">
+  <label>Ваше имя</label>
+  <input id="name" type="text" placeholder="Иван">
+
+  <label>Услуга</label>
+  <select id="service">
+    <option value="Стрижка|1500">Стрижка — 1500₽</option>
+    <option value="Маникюр|2000">Маникюр — 2000₽</option>
+    <option value="Окрашивание|3500">Окрашивание — 3500₽</option>
+  </select>
+
+  <label>Дата и время</label>
+  <input id="time" type="text" placeholder="08.09.2026 10:00">
+
+  <label>Цена (₽)</label>
+  <input id="price" type="number" value="1500">
+
+  <button type="submit">✅ Записаться</button>
+</form>
+
+<script>
+  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  // цена подставляется при выборе услуги
+  document.getElementById('service').addEventListener('change', function () {
+    document.getElementById('price').value = this.value.split('|')[1] || '';
+  });
+
+  document.getElementById('bookingForm').addEventListener('submit', function (e) {
+    e.preventDefault();  // КЛЮЧЕВОЕ: страница НЕ перезагружается и НИЧЕГО не шлёт сама
+
+    var name = document.getElementById('name').value.trim();
+    var time = document.getElementById('time').value.trim();
+    if (!name || !time) {
+      if (tg) { tg.showAlert('Заполните имя и время'); } else { alert('Заполните имя и время'); }
+      return;
+    }
+    if (!tg || !tg.sendData) {
+      alert('Старая версия страницы или открыто вне Telegram. Открой через кнопку «Записаться» в боте.');
+      return;
+    }
+
+    var parts = document.getElementById('service').value.split('|');
+    var payload = {
+      name:    name,
+      service: parts[0],
+      time:    time,
+      price:   document.getElementById('price').value
+    };
+
+    tg.sendData(JSON.stringify(payload));  // <-- ЕДИНСТВЕННАЯ отправка: данные уходят БОТУ
+    tg.close();                            // закрываем Web App
+  });
+</script>
+</body>
+</html>
