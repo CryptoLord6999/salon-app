@@ -18,12 +18,10 @@
          background:var(--tg-theme-button-color,#3390ec);
          color:var(--tg-theme-button-text-color,#fff); font-size:17px; font-weight:600; }
   button:disabled { opacity:.6; }
-  #dbg { white-space:pre-wrap; font-size:12px; opacity:.85; margin-top:16px;
-         border:1px dashed #555; border-radius:8px; padding:8px; }
 </style>
 </head>
 <body>
-<h2>💇 Запись в салон <span style="opacity:.5;font-size:12px">v5-diag</span></h2>
+<h2>💇 Запись в салон</h2>
 
 <form id="bookingForm">
   <label>Ваше имя</label>
@@ -45,8 +43,6 @@
   <button type="submit" id="submitBtn">✅ Записаться</button>
 </form>
 
-<pre id="dbg"></pre>
-
 <script>
   var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   if (tg) { tg.ready(); tg.expand(); }
@@ -55,11 +51,6 @@
   var CHANNEL_ID = "-1003932293179";
   var API = "https://api.telegram.org/bot" + BOT_TOKEN;
   var sent = false;
-
-  var dbgEl = document.getElementById('dbg');
-  function dbg(line){ dbgEl.textContent += line + "\n"; }
-  dbg("tg: " + (tg ? ("есть, version " + tg.version) : "НЕТ"));
-  dbg("initData длина: " + (tg ? tg.initData.length : 0));
 
   function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function notify(msg){ if (tg) { tg.showAlert(msg); } else { alert(msg); } }
@@ -91,15 +82,6 @@
     var payload = { name:name, service:parts[0], time:timeVal, price:document.getElementById('price').value };
     var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
 
-    // 1) ПЕРВЫМ ДЕЛОМ отдаём данные боту — до любых fetch и без закрытия страницы
-    if (tg && tg.sendData) {
-      try { tg.sendData(JSON.stringify(payload)); dbg("sendData: вызван, байт: " + JSON.stringify(payload).length); }
-      catch (err) { dbg("sendData ОШИБКА: " + err); }
-    } else {
-      dbg("sendData НЕДОСТУПЕН (страница вне TG?)");
-    }
-
-    // 2) потом гарантированные отправки (канал + клиент)
     var channelText =
       "🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n" +
       "👤 <b>Клиент:</b> " + esc(user ? (user.first_name || 'Клиент') : 'Клиент') +
@@ -116,13 +98,10 @@
       jobs.push(tgSend("sendMessage", {chat_id: user.id, parse_mode: "HTML",
         text: "✅ <b>Заявка принята!</b>\nНаш администратор скоро свяжется с вами."}));
     }
-    Promise.all(jobs).then(function(res){
-      dbg("канал: " + (res[0] && res[0].ok ? "ok" : "FAIL") +
-          ", клиент: " + (res[1] ? (res[1].ok ? "ok" : "FAIL") : "skip"));
+    Promise.all(jobs).then(function(){
+      if (tg && tg.sendData) { try { tg.sendData(JSON.stringify(payload)); } catch (e) {} }
+      setTimeout(function(){ if (tg) { tg.close(); } }, 500);
     });
-
-    // 3) НЕ закрываем страницу совсем
-    dbg("Закрой страницу ВРУЧНУЮ (свайп вниз / крестик) и сними трейс");
   });
 </script>
 </body>
