@@ -2,107 +2,2496 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Запись в салон</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>HippoTap 🦛</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.css">
 <style>
-  body { margin:0; padding:16px; font-family:-apple-system,sans-serif;
-         background:var(--tg-theme-bg-color,#111); color:var(--tg-theme-text-color,#fff); }
-  h2 { margin-top:0; }
-  label { display:block; margin:12px 0 4px; font-size:14px; opacity:.8; }
-  input, select { width:100%; box-sizing:border-box; padding:12px; border-radius:10px;
-         border:1px solid var(--tg-theme-hint-color,#444);
-         background:var(--tg-theme-secondary-bg-color,#1c1c1e);
-         color:var(--tg-theme-text-color,#fff); font-size:16px; }
-  button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:12px;
-         background:var(--tg-theme-button-color,#3390ec);
-         color:var(--tg-theme-button-text-color,#fff); font-size:17px; font-weight:600; }
-  button:disabled { opacity:.6; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+:root {
+  --bg: #05050f; --bg2: #0c0c1a; --card: #151528; --card2: #1e1e38;
+  --accent: #ff9500; --accent2: #ffb84d; --green: #4ade80; --pink: #ec4899;
+  --purple: #a855f7; --blue: #3b82f6; --cyan: #22d3ee; --red: #ef4444; --gold: #fbbf24;
+  --text: #ffffff; --text2: #9ca3af; --border: rgba(255,255,255,0.08);
+}
+html, body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; height: 100vh; height: 100dvh; position: fixed; width: 100%; }
+#app { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+/* ===== SPLASH ===== */
+.splash { position: fixed; inset: 0; background: radial-gradient(ellipse at center, #1a1a3a, #05050f); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.6s; }
+.splash.hide { opacity: 0; pointer-events: none; }
+.splash-logo { font-size: 90px; animation: splashBounce 1.2s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(255,149,0,0.5)); }
+@keyframes splashBounce { 0%,100% { transform: scale(1) rotate(-5deg); } 50% { transform: scale(1.15) rotate(5deg); } }
+.splash-title { font-size: 36px; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--pink), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 16px; letter-spacing: 1px; }
+.splash-sub { font-size: 13px; color: var(--text2); margin-top: 6px; }
+.splash-loader { width: 200px; height: 4px; background: var(--card); border-radius: 2px; margin-top: 30px; overflow: hidden; }
+.splash-loader::after { content: ''; display: block; width: 40%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--pink), var(--purple)); border-radius: 2px; animation: load 1.2s ease-in-out infinite; }
+@keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+/* ===== ONBOARDING (FIXED) ===== */
+.onboarding {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, #1a1a3a, #05050f);
+  z-index: 600;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+}
+.onboarding.show { display: flex; animation: fadeIn 0.4s; }
+.onb-slide {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+.onb-slide.active { display: flex; animation: pageFade 0.4s; }
+.onb-emoji { font-size: 100px; margin-bottom: 20px; animation: splashBounce 1.5s ease-in-out infinite; }
+.onb-title { font-size: 26px; font-weight: 900; margin-bottom: 10px; background: linear-gradient(135deg, var(--accent), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.onb-desc { font-size: 15px; color: var(--text2); line-height: 1.5; margin-bottom: 30px; }
+.onb-dots { display: flex; gap: 8px; margin-bottom: 30px; }
+.onb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--card2); transition: all 0.3s; }
+.onb-dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+.onb-actions { display: flex; gap: 10px; width: 100%; max-width: 340px; }
+.onb-btn {
+  flex: 1;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.onb-btn:active { transform: scale(0.95); }
+.onb-btn.primary { background: linear-gradient(135deg, var(--accent), #ff7700); color: #000; box-shadow: 0 4px 20px rgba(255,149,0,0.4); }
+.onb-btn.ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes pageFade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ===== HOME BACKGROUND ===== */
+.home-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.home-bg::before { content: ''; position: absolute; inset: -50%; background: radial-gradient(circle at 20% 30%, rgba(255,149,0,0.15) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.12) 0%, transparent 40%), radial-gradient(circle at 50% 50%, rgba(168,85,247,0.1) 0%, transparent 50%); animation: bgShift 20s ease-in-out infinite; }
+@keyframes bgShift { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-5%, 3%) scale(1.05); } 66% { transform: translate(5%, -3%) scale(1.05); } }
+.stars { position: absolute; inset: 0; overflow: hidden; }
+.star { position: absolute; background: #fff; border-radius: 50%; animation: twinkle var(--dur) ease-in-out infinite; opacity: 0; }
+@keyframes twinkle { 0%,100% { opacity: 0; transform: scale(0.5); } 50% { opacity: var(--op); transform: scale(1); } }
+.orb { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.4; animation: orbFloat var(--dur) ease-in-out infinite; }
+@keyframes orbFloat { 0%,100% { transform: translate(0,0); } 50% { transform: translate(var(--dx), var(--dy)); } }
+.float-emoji { position: absolute; font-size: 20px; opacity: 0.15; animation: floatEmoji var(--dur) linear infinite; pointer-events: none; }
+@keyframes floatEmoji { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.15; } 90% { opacity: 0.15; } 100% { transform: translateY(-100px) rotate(360deg); opacity: 0; } }
+.aurora { position: absolute; top: -30%; left: -20%; width: 140%; height: 60%; background: linear-gradient(180deg, transparent 0%, rgba(168,85,247,0.08) 30%, rgba(236,72,153,0.06) 60%, transparent 100%); filter: blur(60px); animation: auroraShift 15s ease-in-out infinite; }
+@keyframes auroraShift { 0%,100% { transform: translateX(0) skewX(0deg); } 50% { transform: translateX(10%) skewX(-5deg); } }
+
+/* ===== HEADER ===== */
+.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; z-index: 10; position: relative; }
+.user-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--pink)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0; box-shadow: 0 4px 20px rgba(255,149,0,0.4); position: relative; }
+.user-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-level { font-size: 10px; color: var(--accent2); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.level-badge { background: linear-gradient(135deg, var(--accent), #ff7700); color: #000; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 9px; }
+.league-badge { background: var(--card2); padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 9px; margin-left: 4px; border: 1px solid var(--border); }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.2s; }
+.icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.1); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn .badge { position: absolute; top: -4px; right: -4px; background: linear-gradient(135deg, var(--red), #b91c1c); color: #fff; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 10px; min-width: 16px; text-align: center; animation: badgePulse 2s ease-in-out infinite; }
+@keyframes badgePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+/* ===== BALANCE ===== */
+.balance-section { text-align: center; padding: 4px 0 2px; position: relative; z-index: 2; }
+.balance-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 2px; font-weight: 600; }
+.balance-value { font-size: 44px; font-weight: 900; background: linear-gradient(135deg, #fff 20%, var(--accent2) 60%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; transition: transform 0.15s; letter-spacing: -1.5px; filter: drop-shadow(0 2px 10px rgba(255,149,0,0.3)); }
+.balance-value.pulse { animation: pulse 0.25s; }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.per-tap-info { font-size: 12px; color: var(--text2); display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; font-weight: 500; }
+.per-tap-info span { color: var(--accent); font-weight: 800; }
+.per-tap-info .wm { color: var(--green); }
+
+/* ===== LEVEL PROGRESS ===== */
+.level-progress { margin: 8px 20px 0; padding: 8px 14px; background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 10px; position: relative; z-index: 2; }
+.level-progress-label { font-size: 10px; color: var(--text2); white-space: nowrap; font-weight: 700; }
+.level-progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+.level-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--pink), var(--purple)); border-radius: 3px; transition: width 0.4s; box-shadow: 0 0 10px rgba(255,149,0,0.6); }
+.level-progress-next { font-size: 10px; color: var(--accent2); font-weight: 800; white-space: nowrap; }
+
+/* ===== TAP AREA ===== */
+.tap-area { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; touch-action: none; min-height: 0; z-index: 2; }
+.hippo-platform { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); width: 280px; height: 60px; background: radial-gradient(ellipse, rgba(255,149,0,0.3) 0%, transparent 70%); filter: blur(10px); animation: platformPulse 3s ease-in-out infinite; pointer-events: none; }
+@keyframes platformPulse { 0%,100% { opacity: 0.6; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.1); } }
+.hippo-container { position: relative; cursor: pointer; z-index: 3; animation: hippoIdle 4s ease-in-out infinite; }
+@keyframes hippoIdle { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.02); } }
+.hippo-container.tapped { animation: hippoTap 0.2s !important; }
+@keyframes hippoTap { 0% { transform: scale(1); } 40% { transform: scale(0.88); } 100% { transform: scale(1); } }
+.hippo-svg { width: 240px; height: 240px; transition: filter 0.3s; }
+
+.minigame-btn { position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, var(--green), #16a34a); border: none; color: #000; padding: 8px 12px; border-radius: 12px; font-family: inherit; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 5px; z-index: 5; box-shadow: 0 4px 15px rgba(74,222,128,0.4); }
+.minigame-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tap-float { position: absolute; font-weight: 900; font-size: 28px; color: var(--accent2); pointer-events: none; animation: floatUp 1s ease-out forwards; text-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 0 20px rgba(255,149,0,0.6); z-index: 50; }
+.tap-float.crit { font-size: 42px; color: #fbbf24; text-shadow: 0 0 25px rgba(251,191,36,1), 0 2px 10px rgba(0,0,0,0.8); animation: floatUpCrit 1.2s ease-out forwards; }
+.tap-float.double { color: var(--cyan); text-shadow: 0 0 20px rgba(34,211,238,0.8), 0 2px 10px rgba(0,0,0,0.8); }
+@keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); } 100% { opacity: 0; transform: translateY(-120px) scale(1.4) rotate(-5deg); } }
+@keyframes floatUpCrit { 0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(-15deg); } 20% { opacity: 1; transform: translateY(-20px) scale(1.4) rotate(5deg); } 100% { opacity: 0; transform: translateY(-160px) scale(1.8) rotate(0deg); } }
+
+.ripple { position: absolute; border-radius: 50%; border: 3px solid var(--accent); pointer-events: none; animation: rippleAnim 0.7s ease-out forwards; box-shadow: 0 0 20px rgba(255,149,0,0.5); }
+@keyframes rippleAnim { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 200px; height: 200px; opacity: 0; margin: -100px; } }
+.sparkle { position: absolute; width: 8px; height: 8px; background: var(--accent2); border-radius: 50%; pointer-events: none; animation: sparkleAnim 0.8s ease-out forwards; box-shadow: 0 0 10px var(--accent); }
+@keyframes sparkleAnim { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); } }
+
+.combo-display { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, rgba(255,149,0,0.25), rgba(236,72,153,0.25)); border: 1px solid rgba(255,149,0,0.5); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; color: var(--accent2); opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(10px); z-index: 5; box-shadow: 0 4px 20px rgba(255,149,0,0.3); letter-spacing: 1px; }
+.combo-display.active { opacity: 1; animation: comboShake 0.3s; }
+@keyframes comboShake { 0%,100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.2); } }
+
+.energy-bar-wrap { padding: 0 20px 10px; position: relative; z-index: 2; }
+.energy-info { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: var(--text2); font-weight: 600; }
+.energy-info span { color: var(--accent2); font-weight: 800; }
+.energy-bar { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+.energy-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--pink)); border-radius: 4px; transition: width 0.2s; box-shadow: 0 0 12px rgba(255,149,0,0.7); position: relative; }
+.energy-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: energyShine 2s linear infinite; }
+@keyframes energyShine { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav { display: flex; background: rgba(12,12,26,0.85); backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding: 6px 4px 8px; padding-bottom: max(8px, env(safe-area-inset-bottom)); position: relative; z-index: 20; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; background: none; border: none; color: var(--text2); font-size: 10px; font-family: inherit; cursor: pointer; border-radius: 10px; transition: all 0.2s; font-weight: 600; position: relative; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active::before { content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 28px; height: 3px; background: linear-gradient(90deg, var(--accent), var(--pink)); border-radius: 2px; box-shadow: 0 0 10px rgba(255,149,0,0.6); }
+.nav-btn svg { width: 22px; height: 22px; }
+
+/* ===== PAGES ===== */
+.page { display: none; flex-direction: column; height: 100%; position: relative; }
+.page.active { display: flex; animation: pageFade 0.25s; }
+.page-scroll { flex: 1; overflow-y: auto; padding: 12px 16px 20px; -webkit-overflow-scrolling: touch; position: relative; z-index: 2; }
+.page-subtitle { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin: 16px 0 10px; display: flex; align-items: center; gap: 6px; }
+
+/* ===== CARDS ===== */
+.card { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; transition: transform 0.15s; cursor: pointer; }
+.card:active { transform: scale(0.98); }
+.card-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: relative; }
+.card-info { flex: 1; min-width: 0; }
+.card-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+.card-desc { font-size: 11px; color: var(--text2); line-height: 1.3; }
+.card-action { background: linear-gradient(135deg, var(--accent), #ff7700); border: none; color: #000; font-weight: 800; font-size: 12px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-family: inherit; white-space: nowrap; display: flex; align-items: center; gap: 4px; transition: transform 0.15s; box-shadow: 0 4px 12px rgba(255,149,0,0.3); }
+.card-action:active { transform: scale(0.95); }
+.card-action.coins { background: var(--card2); color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+.card-action.watermelon { background: linear-gradient(135deg, var(--green), #16a34a); color: #000; box-shadow: 0 4px 12px rgba(74,222,128,0.3); }
+.card-action:disabled { opacity: 0.4; cursor: not-allowed; }
+.card-action.owned { background: linear-gradient(135deg, var(--green), #16a34a); color: #000; }
+.card-action.done { background: var(--card2); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+.card-action.equipped { background: linear-gradient(135deg, var(--purple), var(--pink)); color: #fff; }
+
+.rarity-badge { position: absolute; top: -4px; right: -4px; font-size: 9px; font-weight: 900; padding: 2px 5px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.2); }
+.rarity-common { background: #6b7280; color: #fff; }
+.rarity-rare { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
+.rarity-epic { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; }
+.rarity-legendary { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 0 10px rgba(251,191,36,0.5); }
+.rarity-mythic { background: linear-gradient(135deg, #ef4444, #ec4899); color: #fff; box-shadow: 0 0 12px rgba(236,72,153,0.5); animation: mythicGlow 2s ease-in-out infinite; }
+@keyframes mythicGlow { 0%,100% { box-shadow: 0 0 12px rgba(236,72,153,0.5); } 50% { box-shadow: 0 0 20px rgba(236,72,153,0.9); } }
+.rarity-exclusive { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; box-shadow: 0 0 10px rgba(6,182,212,0.5); }
+
+.bonus-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; margin-right: 4px; margin-top: 2px; }
+.bonus-crit { background: rgba(239,68,68,0.2); color: #fca5a5; }
+.bonus-tap { background: rgba(255,149,0,0.2); color: var(--accent2); }
+.bonus-energy { background: rgba(251,191,36,0.2); color: #fde047; }
+.bonus-passive { background: rgba(74,222,128,0.2); color: #86efac; }
+.bonus-combo { background: rgba(236,72,153,0.2); color: #f9a8d4; }
+.bonus-special { background: rgba(168,85,247,0.2); color: #d8b4fe; }
+
+.shop-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.shop-tabs::-webkit-scrollbar { display: none; }
+.shop-tab { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 5px; }
+.shop-tab.active { background: linear-gradient(135deg, var(--accent), #ff7700); color: #000; border-color: transparent; box-shadow: 0 4px 12px rgba(255,149,0,0.3); }
+.shop-tab .count { background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 8px; font-size: 10px; }
+.shop-tab.active .count { background: rgba(0,0,0,0.4); color: #fff; }
+
+.task-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
+.task-filters::-webkit-scrollbar { display: none; }
+.task-filter { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text2); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; }
+.task-filter.active { background: linear-gradient(135deg, var(--purple), var(--pink)); color: #fff; border-color: transparent; }
+
+.task-progress { height: 4px; background: var(--card2); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.task-progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), #16a34a); border-radius: 2px; transition: width 0.3s; }
+
+.league-card { background: linear-gradient(135deg, var(--card), var(--card2)); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+.league-card.current { border-color: var(--accent); background: linear-gradient(135deg, rgba(255,149,0,0.15), var(--card)); }
+.league-card.locked { opacity: 0.5; }
+.league-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+.league-info { flex: 1; min-width: 0; }
+.league-name { font-weight: 800; font-size: 14px; margin-bottom: 2px; }
+.league-req { font-size: 11px; color: var(--text2); }
+.league-bonus { font-size: 11px; color: var(--green); font-weight: 700; margin-top: 2px; }
+
+.item-preview { width: 140px; height: 140px; margin: 0 auto 14px; background: radial-gradient(circle, rgba(255,149,0,0.15), transparent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 70px; position: relative; }
+.item-preview::before { content: ''; position: absolute; inset: -10px; border-radius: 50%; background: conic-gradient(from 0deg, transparent, rgba(255,149,0,0.3), transparent); animation: rotate 4s linear infinite; z-index: -1; }
+@keyframes rotate { to { transform: rotate(360deg); } }
+
+.bonus-list { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin: 12px 0; }
+.bonus-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.bonus-row:last-child { border-bottom: none; }
+.bonus-row .label { color: var(--text2); }
+.bonus-row .value { color: var(--green); font-weight: 800; }
+
+.boost-card { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+.boost-card.active-boost { border-color: var(--accent); background: linear-gradient(135deg, rgba(255,149,0,0.15), rgba(255,255,255,0.02)); }
+.boost-timer { font-size: 10px; color: var(--accent2); font-weight: 700; margin-top: 2px; }
+
+.mine-card { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 16px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s; }
+.mine-card:active { transform: scale(0.98); }
+.mine-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.mine-info { flex: 1; min-width: 0; }
+.mine-name { font-weight: 700; font-size: 13px; }
+.mine-profit { font-size: 11px; color: var(--green); margin-top: 2px; font-weight: 600; }
+.mine-level { display: inline-block; background: rgba(255,149,0,0.15); color: var(--accent2); font-size: 10px; padding: 2px 8px; border-radius: 6px; margin-top: 4px; font-weight: 700; }
+
+.profile-header { text-align: center; padding: 16px 0; }
+.profile-avatar { width: 84px; height: 84px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--pink)); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; margin: 0 auto 10px; border: 3px solid rgba(255,255,255,0.2); box-shadow: 0 10px 40px rgba(255,149,0,0.4); }
+.profile-name { font-size: 22px; font-weight: 900; }
+.profile-id { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.stat-card { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 14px; padding: 14px; text-align: center; }
+.stat-value { font-size: 20px; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.setting-item { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s; }
+.setting-item:active { transform: scale(0.98); }
+.setting-left { display: flex; align-items: center; gap: 12px; }
+.setting-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--card2); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.setting-label { font-size: 14px; font-weight: 600; }
+.setting-value { font-size: 12px; color: var(--text2); }
+
+.toggle { width: 44px; height: 24px; background: var(--card2); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+.toggle.on { background: linear-gradient(135deg, var(--accent), #ff7700); }
+.toggle::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.toggle.on::after { transform: translateX(20px); }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.show { display: flex; animation: fadeIn 0.2s; }
+.modal { background: linear-gradient(180deg, var(--bg2), var(--bg)); border-radius: 24px 24px 0 0; width: 100%; max-width: 500px; padding: 20px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); animation: slideUp 0.3s; border-top: 1px solid var(--border); max-height: 85vh; overflow-y: auto; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle { width: 40px; height: 4px; background: var(--card2); border-radius: 2px; margin: 0 auto 14px; }
+.modal-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; text-align: center; }
+.modal-desc { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 16px; line-height: 1.5; }
+.modal-note { background: rgba(255,149,0,0.08); border: 1px solid rgba(255,149,0,0.2); border-radius: 10px; padding: 10px 12px; font-size: 11px; color: var(--accent2); text-align: center; line-height: 1.4; margin-bottom: 12px; }
+.modal-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 8px; transition: transform 0.15s; }
+.modal-btn:active { transform: scale(0.98); }
+.modal-btn.primary { background: linear-gradient(135deg, var(--accent), #ff7700); color: #000; box-shadow: 0 4px 15px rgba(255,149,0,0.4); }
+.modal-btn.stars { background: linear-gradient(135deg, #5865f2, #3b82f6); color: #fff; box-shadow: 0 4px 15px rgba(88,101,242,0.4); }
+.modal-btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.modal-btn.danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.modal-btn.equip { background: linear-gradient(135deg, var(--purple), var(--pink)); color: #fff; box-shadow: 0 4px 15px rgba(168,85,247,0.4); }
+
+.daily-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.daily-day { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 6px; text-align: center; position: relative; transition: all 0.2s; }
+.daily-day.claimed { background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(74,222,128,0.05)); border-color: rgba(74,222,128,0.3); }
+.daily-day.today { border-color: var(--accent); background: linear-gradient(135deg, rgba(255,149,0,0.2), rgba(255,149,0,0.05)); animation: todayPulse 2s ease-in-out infinite; }
+@keyframes todayPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,149,0,0.4); } 50% { box-shadow: 0 0 0 8px rgba(255,149,0,0); } }
+.daily-day.day7 { grid-column: span 2; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(236,72,153,0.1)); border-color: var(--purple); }
+.daily-num { font-size: 9px; color: var(--text2); font-weight: 700; margin-bottom: 4px; }
+.daily-reward { font-size: 20px; margin-bottom: 2px; }
+.daily-amount { font-size: 10px; color: var(--accent2); font-weight: 700; }
+.daily-day.claimed .daily-amount { color: var(--green); }
+.daily-check { position: absolute; top: 4px; right: 4px; font-size: 12px; }
+
+.lb-item { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+.lb-item.me { background: linear-gradient(135deg, rgba(255,149,0,0.15), rgba(255,255,255,0.02)); border-color: var(--accent); }
+.lb-rank { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; background: var(--card2); flex-shrink: 0; }
+.lb-rank.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+.lb-rank.silver { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #000; }
+.lb-rank.bronze { background: linear-gradient(135deg, #d97706, #92400e); color: #fff; }
+.lb-info { flex: 1; min-width: 0; }
+.lb-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-level { font-size: 10px; color: var(--text2); }
+.lb-score { font-weight: 800; font-size: 14px; color: var(--accent2); }
+
+.chest-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.chest-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.chest-item:active { transform: scale(0.95); }
+.chest-emoji { font-size: 36px; margin-bottom: 6px; }
+.chest-name { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+.chest-price { font-size: 10px; color: var(--accent2); font-weight: 700; }
+
+.friend-bonus { background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.1)); border: 1px solid rgba(168,85,247,0.3); border-radius: 16px; padding: 16px; margin-bottom: 12px; text-align: center; }
+.friend-bonus-title { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.friend-bonus-desc { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.friend-bonus-amount { font-size: 24px; font-weight: 900; color: var(--accent2); margin: 8px 0 4px; }
+
+.invite-link-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: monospace; font-size: 11px; word-break: break-all; margin-bottom: 10px; color: var(--cyan); text-align: center; }
+
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-150px); background: rgba(21,21,40,0.95); backdrop-filter: blur(20px); border: 1px solid var(--border); padding: 12px 20px; border-radius: 14px; font-size: 13px; font-weight: 600; z-index: 300; transition: transform 0.3s; box-shadow: 0 10px 40px rgba(0,0,0,0.5); max-width: 90%; text-align: center; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: rgba(74,222,128,0.4); }
+.toast.error { border-color: rgba(239,68,68,0.4); }
+
+.floating-reward { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: linear-gradient(135deg, var(--accent), var(--pink)); color: #000; padding: 20px 30px; border-radius: 20px; font-size: 24px; font-weight: 900; z-index: 400; animation: rewardPop 2s forwards; box-shadow: 0 20px 60px rgba(255,149,0,0.6); text-align: center; }
+@keyframes rewardPop { 0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; } 20% { transform: translate(-50%, -50%) scale(1.2) rotate(5deg); opacity: 1; } 40% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; } 80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(0.8) rotate(0deg); opacity: 0; } }
+
+.passive-income { background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(74,222,128,0.05)); border: 1px solid rgba(74,222,128,0.3); border-radius: 12px; padding: 10px 14px; margin: 8px 20px 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; position: relative; z-index: 2; backdrop-filter: blur(10px); }
+.passive-income-label { color: var(--text2); font-weight: 600; }
+.passive-income-value { color: var(--green); font-weight: 800; }
+
+.offline-emoji { font-size: 60px; text-align: center; margin: 10px 0; }
+.offline-amount { font-size: 32px; font-weight: 900; text-align: center; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 10px 0; }
+
+/* ===== MINI GAME ===== */
+.minigame-screen { position: fixed; inset: 0; background: linear-gradient(180deg, #1a1a3a, #05050f); z-index: 150; display: none; flex-direction: column; }
+.minigame-screen.show { display: flex; animation: fadeIn 0.3s; }
+.minigame-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); }
+.minigame-close { background: var(--card); border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; }
+.minigame-stats { display: flex; gap: 14px; font-size: 13px; font-weight: 700; }
+.minigame-stats span { color: var(--accent2); }
+.minigame-canvas-wrap { flex: 1; position: relative; overflow: hidden; }
+#minigame-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.minigame-result { position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+.minigame-result.show { display: flex; animation: fadeIn 0.3s; }
+.minigame-result-emoji { font-size: 80px; margin-bottom: 16px; animation: splashBounce 1.5s ease-in-out infinite; }
+.minigame-result-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.minigame-result-score { font-size: 16px; color: var(--text2); margin-bottom: 16px; }
+.minigame-rewards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 300px; margin-bottom: 20px; }
+.minigame-reward { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+.minigame-reward-value { font-size: 20px; font-weight: 900; color: var(--accent2); }
+.minigame-reward-label { font-size: 10px; color: var(--text2); text-transform: uppercase; margin-top: 2px; }
+
+::-webkit-scrollbar { width: 0; }
+
+@media (max-height: 640px) {
+  .hippo-svg { width: 180px; height: 180px; }
+  .balance-value { font-size: 34px; }
+}
 </style>
 </head>
 <body>
-<h2>💇 Запись в салон</h2>
 
-<form id="bookingForm">
-  <label>Ваше имя</label>
-  <input id="name" type="text" placeholder="Иван">
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo">🦛</div>
+  <div class="splash-title">HippoTap</div>
+  <div class="splash-sub">Тапай · Зарабатывай · Прокачивай</div>
+  <div class="splash-loader"></div>
+</div>
 
-  <label>Услуга</label>
-  <select id="service">
-    <option value="Стрижка|1500">Стрижка — 1500₽</option>
-    <option value="Маникюр|2000">Маникюр — 2000₽</option>
-    <option value="Окрашивание|3500">Окрашивание — 3500₽</option>
-  </select>
+<!-- ONBOARDING (FIXED) -->
+<div class="onboarding" id="onboarding">
+  <div class="onb-slide active" data-slide="0">
+    <div class="onb-emoji">🦛</div>
+    <div class="onb-title">Тапай по бегемоту!</div>
+    <div class="onb-desc">Нажимай на животик бегемота, чтобы зарабатывать монеты. Чем больше тапов — тем больше награда!</div>
+  </div>
+  <div class="onb-slide" data-slide="1">
+    <div class="onb-emoji">⚡</div>
+    <div class="onb-title">Покупай бусты!</div>
+    <div class="onb-desc">Улучшай силу тапа, энергию и критические удары. Открывай новые скины и бонусы!</div>
+  </div>
+  <div class="onb-slide" data-slide="2">
+    <div class="onb-emoji">👥</div>
+    <div class="onb-title">Приглашай друзей!</div>
+    <div class="onb-desc">Делитесь ссылкой и получайте бонусы. Чем больше друзей — тем выше твой рейтинг!</div>
+  </div>
+  <div class="onb-slide" data-slide="3">
+    <div class="onb-emoji">🎯</div>
+    <div class="onb-title">Выполняй задания!</div>
+    <div class="onb-desc">За каждое задание — награда. Социальные, игровые и ежедневные задания помогут прокачаться быстрее!</div>
+  </div>
+  <div class="onb-dots">
+    <div class="onb-dot active"></div>
+    <div class="onb-dot"></div>
+    <div class="onb-dot"></div>
+    <div class="onb-dot"></div>
+  </div>
+  <div class="onb-actions">
+    <button class="onb-btn ghost" id="onb-skip-btn">Пропустить</button>
+    <button class="onb-btn primary" id="onb-next-btn">Далее →</button>
+  </div>
+</div>
 
-  <label>Дата и время</label>
-  <input id="time" type="text" placeholder="08.09.2026 10:00">
+<div id="app">
 
-  <label>Цена (₽)</label>
-  <input id="price" type="number" value="1500">
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div class="home-bg">
+      <div class="aurora"></div>
+      <div class="stars" id="stars"></div>
+      <div class="orb" style="width:200px;height:200px;background:rgba(255,149,0,0.3);top:10%;left:-10%;--dur:15s;--dx:30px;--dy:40px;"></div>
+      <div class="orb" style="width:250px;height:250px;background:rgba(236,72,153,0.25);bottom:20%;right:-15%;--dur:18s;--dx:-40px;--dy:-30px;"></div>
+      <div class="orb" style="width:180px;height:180px;background:rgba(168,85,247,0.25);top:50%;left:50%;--dur:20s;--dx:50px;--dy:-40px;"></div>
+      <div id="float-emojis"></div>
+    </div>
 
-  <button type="submit" id="submitBtn">✅ Записаться</button>
-</form>
+    <div class="header">
+      <div class="user-info">
+        <div class="avatar" id="header-avatar">H</div>
+        <div style="min-width:0;flex:1;">
+          <div class="user-name" id="header-name">Hippo Player</div>
+          <div class="user-level">
+            <span class="level-badge" id="header-lvl-badge">1</span>
+            <span id="header-level">Новичок</span>
+            <span class="league-badge" id="header-league">🥉 Bronze</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-daily" title="Ежедневная награда">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="badge" id="daily-badge" style="display:none;">!</span>
+        </button>
+        <button class="icon-btn" id="btn-chests" title="Сундуки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16v12H4z"/><path d="M4 8l8-5 8 5"/><line x1="12" y1="3" x2="12" y2="20"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-settings" title="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="balance-section">
+      <div class="balance-label">Ваш баланс</div>
+      <div class="balance-value" id="balance">0</div>
+      <div class="per-tap-info">
+        <span>+<span id="per-tap">1</span> за тап</span>
+        <span class="wm">🍉 <span id="watermelons">0</span></span>
+      </div>
+    </div>
+
+    <div class="level-progress">
+      <div class="level-progress-label" id="lp-label">Ур. 1</div>
+      <div class="level-progress-bar">
+        <div class="level-progress-fill" id="lp-fill" style="width:0%"></div>
+      </div>
+      <div class="level-progress-next" id="lp-next">0/100</div>
+    </div>
+
+    <div class="passive-income" id="passive-income-bar" style="display:none;">
+      <div class="passive-income-label">💰 Пассивный доход</div>
+      <div class="passive-income-value" id="passive-income-value">+0/час</div>
+    </div>
+
+    <div class="tap-area" id="tap-area">
+      <div class="combo-display" id="combo-display">🔥 COMBO x1</div>
+      <button class="minigame-btn" id="minigame-btn">🍉 <span>Тир</span></button>
+      <div class="hippo-platform"></div>
+      <div class="hippo-container" id="hippo"></div>
+    </div>
+
+    <div class="energy-bar-wrap">
+      <div class="energy-info">
+        <span>⚡ Энергия</span>
+        <span><span id="energy-current">1000</span> / <span id="energy-max">1000</span></span>
+      </div>
+      <div class="energy-bar">
+        <div class="energy-fill" id="energy-fill" style="width:100%"></div>
+      </div>
+    </div>
+
+    <div class="bottom-nav" id="bottom-nav">
+      <button class="nav-btn active" data-page="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span>Тапай</span>
+      </button>
+      <button class="nav-btn" data-page="shop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>Гардероб</span>
+      </button>
+      <button class="nav-btn" data-page="tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Задания</span>
+      </button>
+      <button class="nav-btn" data-page="leagues">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span>Лиги</span>
+      </button>
+      <button class="nav-btn" data-page="friends">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Друзья</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SHOP PAGE -->
+  <div class="page" id="page-shop">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">👗 Гардероб</div></div>
+      <button class="icon-btn" id="btn-to-profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </div>
+    <div class="page-scroll" id="shop-scroll"></div>
+    <div class="bottom-nav" id="nav-shop"></div>
+  </div>
+
+  <!-- TASKS PAGE -->
+  <div class="page" id="page-tasks">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">🎯 Задания</div></div>
+    </div>
+    <div class="page-scroll" id="tasks-scroll"></div>
+    <div class="bottom-nav" id="nav-tasks"></div>
+  </div>
+
+  <!-- LEAGUES PAGE -->
+  <div class="page" id="page-leagues">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">🏆 Лиги</div></div>
+    </div>
+    <div class="page-scroll" id="leagues-scroll"></div>
+    <div class="bottom-nav" id="nav-leagues"></div>
+  </div>
+
+  <!-- FRIENDS PAGE -->
+  <div class="page" id="page-friends">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">👥 Друзья</div></div>
+      <div style="font-size:13px;color:var(--accent2);font-weight:700;"><span id="friends-count">0</span> друзей</div>
+    </div>
+    <div class="page-scroll" id="friends-scroll"></div>
+    <div class="bottom-nav" id="nav-friends"></div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">👤 Профиль</div></div>
+    </div>
+    <div class="page-scroll" id="profile-scroll"></div>
+    <div class="bottom-nav" id="nav-profile"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">⚙️ Настройки</div></div>
+    </div>
+    <div class="page-scroll" id="settings-scroll"></div>
+    <div class="bottom-nav" id="nav-settings"></div>
+  </div>
+
+  <!-- LEADERBOARD PAGE -->
+  <div class="page" id="page-leaderboard">
+    <div class="header">
+      <div class="user-info"><div style="font-size:22px;font-weight:900;">🏆 Топ игроков</div></div>
+      <button class="icon-btn" id="btn-back-leagues">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+    <div class="page-scroll" id="leaderboard-scroll"></div>
+    <div class="bottom-nav" id="nav-leaderboard"></div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- MINI GAME -->
+<div class="minigame-screen" id="minigame-screen">
+  <div class="minigame-header">
+    <button class="minigame-close" id="mg-close">✕</button>
+    <div class="minigame-stats">
+      <div>🍉 <span id="mg-score">0</span></div>
+      <div>⏱ <span id="mg-time">30</span></div>
+    </div>
+  </div>
+  <div class="minigame-canvas-wrap">
+    <canvas id="minigame-canvas"></canvas>
+    <div class="minigame-result" id="minigame-result">
+      <div class="minigame-result-emoji">🏆</div>
+      <div class="minigame-result-title">Игра окончена!</div>
+      <div class="minigame-result-score">Счёт: <span id="mg-final-score">0</span></div>
+      <div class="minigame-rewards">
+        <div class="minigame-reward">
+          <div class="minigame-reward-value" id="mg-coins">0</div>
+          <div class="minigame-reward-label">Монет</div>
+        </div>
+        <div class="minigame-reward">
+          <div class="minigame-reward-value" id="mg-wm">0</div>
+          <div class="minigame-reward-label">🍉 Арбузиков</div>
+        </div>
+      </div>
+      <button class="modal-btn primary" id="mg-claim-btn" style="max-width:300px;">Забрать награду!</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-  if (tg) { tg.ready(); tg.expand(); }
+// ============ TELEGRAM INIT ============
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.expand();
+  tg.ready();
+  if (tg.setHeaderColor) tg.setHeaderColor('#05050f');
+  if (tg.setBackgroundColor) tg.setBackgroundColor('#05050f');
+  if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+}
 
-  var BOT_TOKEN = "8717717565:AAGDVp8ce7TUDFP0oTuMRoNe5NkSQp5DXhM";
-  var CHANNEL_ID = "-1003932293179";
-  var API = "https://api.telegram.org/bot" + BOT_TOKEN;
-  var sent = false;
+// ============ STATE ============
+const STORAGE_KEY = 'hippotap_v5';
 
-  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-  function notify(msg){ if (tg) { tg.showAlert(msg); } else { alert(msg); } }
-  function tgSend(method, payload){
-    return fetch(API + "/" + method, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(payload)
-    }).then(function(r){ return r.json(); }).catch(function(){ return {ok:false}; });
-  }
+const LEVELS = [
+  { lvl: 1, name: 'Новичок', req: 0 },
+  { lvl: 2, name: 'Новичок+', req: 100 },
+  { lvl: 3, name: 'Активист', req: 500 },
+  { lvl: 4, name: 'Тапер', req: 2000 },
+  { lvl: 5, name: 'Опытный', req: 5000 },
+  { lvl: 6, name: 'Профи', req: 15000 },
+  { lvl: 7, name: 'Эксперт', req: 50000 },
+  { lvl: 8, name: 'Мастер', req: 150000 },
+  { lvl: 9, name: 'Легенда', req: 500000 },
+  { lvl: 10, name: 'Бог тапа', req: 2000000 }
+];
 
-  document.getElementById('service').addEventListener('change', function(){
-    document.getElementById('price').value = this.value.split('|')[1] || '';
-  });
+const LEAGUES = [
+  { id: 'bronze', name: 'Bronze', emoji: '🥉', minBalance: 0, bonusPct: 0, color: '#cd7f32' },
+  { id: 'silver', name: 'Silver', emoji: '🥈', minBalance: 10000, bonusPct: 5, color: '#c0c0c0' },
+  { id: 'gold', name: 'Gold', emoji: '🥇', minBalance: 100000, bonusPct: 10, color: '#fbbf24' },
+  { id: 'platinum', name: 'Platinum', emoji: '💠', minBalance: 500000, bonusPct: 15, color: '#a5f3fc' },
+  { id: 'diamond', name: 'Diamond', emoji: '💎', minBalance: 2000000, bonusPct: 20, color: '#60a5fa' },
+  { id: 'master', name: 'Master', emoji: '👑', minBalance: 10000000, bonusPct: 30, color: '#a855f7' },
+  { id: 'legend', name: 'Legend', emoji: '🏆', minBalance: 50000000, bonusPct: 50, color: '#ec4899' }
+];
 
-  document.getElementById('bookingForm').addEventListener('submit', function(e){
-    e.preventDefault();
-    if (sent) { return; }
-    var name = document.getElementById('name').value.trim();
-    var timeVal = document.getElementById('time').value.trim();
-    if (!name || !timeVal) { notify('Заполните имя и время'); return; }
+function getLeague(balance = state.balance) {
+  let cur = LEAGUES[0];
+  for (const l of LEAGUES) { if (balance >= l.minBalance) cur = l; }
+  return cur;
+}
 
-    sent = true;
-    var btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = "⏳ Отправляем...";
+function getNextLeague(balance = state.balance) {
+  const cur = getLeague(balance);
+  const idx = LEAGUES.findIndex(l => l.id === cur.id);
+  return LEAGUES[idx + 1] || null;
+}
 
-    var parts = document.getElementById('service').value.split('|');
-    var payload = { name:name, service:parts[0], time:timeVal, price:document.getElementById('price').value };
-    var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+const defaultState = () => ({
+  id: 'HP' + Math.floor(100000 + Math.random() * 900000),
+  name: tg?.initDataUnsafe?.user?.first_name || 'Hippo Player',
+  balance: 0, totalTaps: 0, sessionTaps: 0, sessionEarned: 0,
+  watermelons: 0, energy: 1000, maxEnergy: 1000,
+  tapPower: 1, energyRegen: 1, critChance: 0.05, critMulti: 5,
+  upgrades: { tap: 0, energy: 0, regen: 0, crit: 0 },
+  inventory: ['skin_default'],
+  equipped: { skin: 'skin_default', hat: null, glasses: null, aura: null, wings: null, tool: null },
+  settings: { sound: true, vibro: true, particles: true, haptic: true, push: true },
+  achievements: [], tasks: {}, mineCards: {},
+  lastOnline: Date.now(), lastDaily: 0, dailyStreak: 0, dailyCycleDay: 1,
+  friends: 0, friendsPremium: 0,
+  boosts: { x2: 0, x3: 0, fullEnergy: 0, autoTap: 0 },
+  chestsOpened: 0, wheelSpins: 0, lastWheelSpin: 0,
+  lastMinigame: 0, minigameBestScore: 0,
+  onboardingCompleted: false, onboardingRewardClaimed: false,
+  createdAt: Date.now()
+});
 
-    var channelText =
-      "🔥 <b>НОВАЯ ЗАПИСЬ!</b>\n\n" +
-      "👤 <b>Клиент:</b> " + esc(user ? (user.first_name || 'Клиент') : 'Клиент') +
-      (user ? " (<code>" + user.id + "</code>)" : "") + "\n" +
-      "📝 <b>Данные:</b>\n" +
-      " • Услуга: " + esc(payload.service) + "\n" +
-      " • Время: " + esc(payload.time) + "\n" +
-      " • Цена: " + esc(payload.price) + "₽\n" +
-      " • Имя: " + esc(payload.name) + "\n\n" +
-      "📞 Свяжитесь с клиентом для подтверждения!";
+let state = loadState();
 
-    var jobs = [ tgSend("sendMessage", {chat_id: CHANNEL_ID, text: channelText, parse_mode: "HTML"}) ];
-    if (user) {
-      jobs.push(tgSend("sendMessage", {chat_id: user.id, parse_mode: "HTML",
-        text: "✅ <b>Заявка принята!</b>\nНаш администратор скоро свяжется с вами."}));
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const def = defaultState();
+      const merged = { ...def, ...parsed };
+      if (!merged.inventory) merged.inventory = ['skin_default'];
+      if (!merged.equipped) merged.equipped = { skin: 'skin_default', hat: null, glasses: null, aura: null, wings: null, tool: null };
+      if (!merged.equipped.skin) merged.equipped.skin = 'skin_default';
+      if (!merged.settings) merged.settings = { sound: true, vibro: true, particles: true, haptic: true, push: true };
+      if (merged.settings.push === undefined) merged.settings.push = true;
+      return merged;
     }
-    Promise.all(jobs).then(function(){
-      if (tg && tg.sendData) { try { tg.sendData(JSON.stringify(payload)); } catch (e) {} }
-      setTimeout(function(){ if (tg) { tg.close(); } }, 500);
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ============ ITEMS DATABASE (56 items) ============
+const ITEMS = {
+  skin_default: { id: 'skin_default', name: 'Классик', emoji: '🦛', category: 'skin', rarity: 'common', priceType: 'coins', price: 0, color: '#b8a5d4', bonuses: [], desc: 'Стандартный бегемот' },
+  skin_candy: { id: 'skin_candy', name: 'Леденец', emoji: '🍭🦛', category: 'skin', rarity: 'common', priceType: 'coins', price: 5000, color: '#f472b6', bonuses: [{ type: 'tapPowerPct', value: 3 }], desc: '+3% к силе тапа' },
+  skin_neon: { id: 'skin_neon', name: 'Неон', emoji: '💚🦛', category: 'skin', rarity: 'rare', priceType: 'coins', price: 25000, color: '#22d3ee', bonuses: [{ type: 'energyRegen', value: 1 }], desc: '+1 энергии/сек' },
+  skin_ice: { id: 'skin_ice', name: 'Ледяной', emoji: '❄️🦛', category: 'skin', rarity: 'rare', priceType: 'coins', price: 40000, color: '#a5f3fc', bonuses: [{ type: 'energyMax', value: 500 }], desc: '+500 макс. энергии' },
+  skin_fire: { id: 'skin_fire', name: 'Огненный', emoji: '🔥🦛', category: 'skin', rarity: 'rare', priceType: 'coins', price: 75000, color: '#ef4444', bonuses: [{ type: 'critMulti', value: 1 }], desc: '+1 к множителю крита' },
+  skin_toxic: { id: 'skin_toxic', name: 'Токсичный', emoji: '☢️🦛', category: 'skin', rarity: 'rare', priceType: 'coins', price: 100000, color: '#84cc16', bonuses: [{ type: 'tapPowerPct', value: 8 }], desc: '+8% к силе тапа' },
+  skin_shadow: { id: 'skin_shadow', name: 'Теневой', emoji: '🌑🦛', category: 'skin', rarity: 'epic', priceType: 'coins', price: 250000, color: '#374151', bonuses: [{ type: 'comboBonus', value: 15 }], desc: '+15% к комбо-бонусу' },
+  skin_golden: { id: 'skin_golden', name: 'Золотой', emoji: '✨🦛', category: 'skin', rarity: 'legendary', priceType: 'watermelons', price: 100, color: '#fbbf24', bonuses: [{ type: 'tapPowerPct', value: 10 }], desc: '+10% к силе тапа' },
+  skin_diamond: { id: 'skin_diamond', name: 'Бриллиант', emoji: '💎🦛', category: 'skin', rarity: 'legendary', priceType: 'watermelons', price: 250, color: '#60a5fa', bonuses: [{ type: 'critChance', value: 3 }], desc: '+3% шанс крита' },
+  skin_cyber: { id: 'skin_cyber', name: 'Кибер', emoji: '🤖🦛', category: 'skin', rarity: 'legendary', priceType: 'watermelons', price: 500, color: '#06b6d4', bonuses: [{ type: 'tapPowerPct', value: 15 }, { type: 'autoTap', value: 0.5 }], desc: '+15% тап, +0.5 авто-тап' },
+  skin_galaxy: { id: 'skin_galaxy', name: 'Галактика', emoji: '🌌🦛', category: 'skin', rarity: 'mythic', priceType: 'watermelons', price: 1000, color: '#a855f7', bonuses: [{ type: 'tapPowerPct', value: 20 }, { type: 'critChance', value: 5 }], desc: '+20% тап, +5% крит' },
+  skin_rainbow: { id: 'skin_rainbow', name: 'Радуга', emoji: '🌈🦛', category: 'skin', rarity: 'mythic', priceType: 'watermelons', price: 2500, color: 'rainbow', bonuses: [{ type: 'tapPowerPct', value: 30 }, { type: 'critMulti', value: 2 }, { type: 'critChance', value: 5 }], desc: 'Ультра-бонусы' },
+  skin_weekly: { id: 'skin_weekly', name: 'Недельный', emoji: '📅🦛', category: 'skin', rarity: 'exclusive', priceType: 'achievement', achievementId: 'daily7', color: '#f59e0b', bonuses: [{ type: 'passiveIncome', value: 15 }], desc: 'Награда за 7 дней подряд' },
+  skin_tapper: { id: 'skin_tapper', name: 'Мастер тапа', emoji: '👆🦛', category: 'skin', rarity: 'exclusive', priceType: 'achievement', achievementId: 'tap100000', color: '#ec4899', bonuses: [{ type: 'tapPowerPct', value: 25 }], desc: '100,000 тапов' },
+  skin_legend: { id: 'skin_legend', name: 'Легенда', emoji: '🏆🦛', category: 'skin', rarity: 'exclusive', priceType: 'achievement', achievementId: 'leagueLegend', color: '#fbbf24', bonuses: [{ type: 'tapPowerPct', value: 50 }], desc: 'Достигни лиги Легенда' },
+
+  hat_cap: { id: 'hat_cap', name: 'Кепка', emoji: '🧢', category: 'hat', rarity: 'common', priceType: 'coins', price: 3000, bonuses: [{ type: 'tapPowerPct', value: 3 }], desc: '+3% к силе тапа' },
+  hat_party: { id: 'hat_party', name: 'Колпак', emoji: '🥳', category: 'hat', rarity: 'common', priceType: 'coins', price: 8000, bonuses: [{ type: 'comboBonus', value: 10 }], desc: '+10% к комбо' },
+  hat_cowboy: { id: 'hat_cowboy', name: 'Ковбойская', emoji: '🤠', category: 'hat', rarity: 'rare', priceType: 'coins', price: 30000, bonuses: [{ type: 'tapPower', value: 5 }], desc: '+5 к силе тапа' },
+  hat_tophat: { id: 'hat_tophat', name: 'Цилиндр', emoji: '🎩', category: 'hat', rarity: 'rare', priceType: 'coins', price: 60000, bonuses: [{ type: 'passiveIncome', value: 10 }], desc: '+10% пассивного дохода' },
+  hat_wizard: { id: 'hat_wizard', name: 'Шляпа мага', emoji: '🧙', category: 'hat', rarity: 'epic', priceType: 'coins', price: 150000, bonuses: [{ type: 'critMulti', value: 2 }, { type: 'critChance', value: 3 }], desc: '+2 крит.множ, +3% крит' },
+  hat_crown: { id: 'hat_crown', name: 'Корона', emoji: '👑', category: 'hat', rarity: 'legendary', priceType: 'watermelons', price: 300, bonuses: [{ type: 'tapPowerPct', value: 20 }, { type: 'critChance', value: 3 }], desc: '+20% тап, +3% крит' },
+  hat_horns: { id: 'hat_horns', name: 'Рога', emoji: '😈', category: 'hat', rarity: 'legendary', priceType: 'watermelons', price: 400, bonuses: [{ type: 'critMulti', value: 3 }, { type: 'critChance', value: 5 }], desc: '+3 крит.множ, +5% крит' },
+  hat_astronaut: { id: 'hat_astronaut', name: 'Астронавт', emoji: '👨‍🚀', category: 'hat', rarity: 'legendary', priceType: 'watermelons', price: 600, bonuses: [{ type: 'tapPowerPct', value: 25 }, { type: 'energyRegen', value: 2 }], desc: '+25% тап, +2 энергии/сек' },
+  hat_halo: { id: 'hat_halo', name: 'Нимб', emoji: '😇', category: 'hat', rarity: 'mythic', priceType: 'watermelons', price: 1500, bonuses: [{ type: 'tapPowerPct', value: 35 }, { type: 'energyRegen', value: 2 }, { type: 'luck', value: 10 }], desc: 'Божественные бонусы' },
+  hat_viking: { id: 'hat_viking', name: 'Викинг', emoji: '⚔️', category: 'hat', rarity: 'exclusive', priceType: 'achievement', achievementId: 'tap10000', bonuses: [{ type: 'tapPowerPct', value: 15 }], desc: '10,000 тапов' },
+
+  glasses_pixel: { id: 'glasses_pixel', name: 'Пиксель', emoji: '👾', category: 'glasses', rarity: 'common', priceType: 'coins', price: 2000, bonuses: [{ type: 'tapPower', value: 2 }], desc: '+2 к силе тапа' },
+  glasses_sun: { id: 'glasses_sun', name: 'Солнцезащитные', emoji: '🕶️', category: 'glasses', rarity: 'common', priceType: 'coins', price: 5000, bonuses: [{ type: 'critChance', value: 2 }], desc: '+2% шанс крита' },
+  glasses_heart: { id: 'glasses_heart', name: 'Сердечки', emoji: '😍', category: 'glasses', rarity: 'rare', priceType: 'coins', price: 20000, bonuses: [{ type: 'comboBonus', value: 15 }], desc: '+15% к комбо' },
+  glasses_monocle: { id: 'glasses_monocle', name: 'Монокль', emoji: '🧐', category: 'glasses', rarity: 'rare', priceType: 'coins', price: 40000, bonuses: [{ type: 'luck', value: 10 }], desc: '+10% удачи' },
+  glasses_3d: { id: 'glasses_3d', name: '3D очки', emoji: '🎬', category: 'glasses', rarity: 'rare', priceType: 'coins', price: 55000, bonuses: [{ type: 'tapPowerPct', value: 8 }], desc: '+8% к силе тапа' },
+  glasses_neon: { id: 'glasses_neon', name: 'Неон', emoji: '🌟', category: 'glasses', rarity: 'epic', priceType: 'watermelons', price: 150, bonuses: [{ type: 'critChance', value: 5 }, { type: 'critMulti', value: 1 }], desc: '+5% крит, +1 крит.множ' },
+  glasses_vr: { id: 'glasses_vr', name: 'VR очки', emoji: '🥽', category: 'glasses', rarity: 'epic', priceType: 'watermelons', price: 350, bonuses: [{ type: 'tapPowerPct', value: 15 }, { type: 'autoTap', value: 0.5 }], desc: '+15% тап, +0.5 авто-тап' },
+  glasses_scanner: { id: 'glasses_scanner', name: 'Сканер', emoji: '🔍', category: 'glasses', rarity: 'legendary', priceType: 'watermelons', price: 800, bonuses: [{ type: 'critChance', value: 8 }, { type: 'critMulti', value: 2 }], desc: '+8% крит, +2 крит.множ' },
+
+  aura_love: { id: 'aura_love', name: 'Любовь', emoji: '💖', category: 'aura', rarity: 'common', priceType: 'coins', price: 10000, bonuses: [{ type: 'passiveIncome', value: 8 }], desc: '+8% пассивного дохода' },
+  aura_shadow: { id: 'aura_shadow', name: 'Теневая', emoji: '🌑', category: 'aura', rarity: 'rare', priceType: 'coins', price: 50000, bonuses: [{ type: 'comboBonus', value: 20 }], desc: '+20% к комбо-бонусу' },
+  aura_electric: { id: 'aura_electric', name: 'Электрическая', emoji: '⚡', category: 'aura', rarity: 'rare', priceType: 'coins', price: 80000, bonuses: [{ type: 'energyRegen', value: 2 }], desc: '+2 энергии/сек' },
+  aura_fire: { id: 'aura_fire', name: 'Огненная', emoji: '🔥', category: 'aura', rarity: 'epic', priceType: 'coins', price: 200000, bonuses: [{ type: 'tapPowerPct', value: 12 }, { type: 'critMulti', value: 1 }], desc: '+12% тап, +1 крит.множ' },
+  aura_ice: { id: 'aura_ice', name: 'Ледяная', emoji: '❄️', category: 'aura', rarity: 'epic', priceType: 'watermelons', price: 200, bonuses: [{ type: 'energyMax', value: 1000 }, { type: 'energyRegen', value: 1 }], desc: '+1000 энергии, +1 реген' },
+  aura_galaxy: { id: 'aura_galaxy', name: 'Галактика', emoji: '🌌', category: 'aura', rarity: 'legendary', priceType: 'watermelons', price: 700, bonuses: [{ type: 'tapPowerPct', value: 20 }, { type: 'critChance', value: 5 }], desc: '+20% тап, +5% крит' },
+  aura_gold: { id: 'aura_gold', name: 'Золотая', emoji: '✨', category: 'aura', rarity: 'legendary', priceType: 'watermelons', price: 1200, bonuses: [{ type: 'passiveIncome', value: 30 }, { type: 'luck', value: 15 }], desc: '+30% доход, +15% удачи' },
+  aura_rainbow: { id: 'aura_rainbow', name: 'Радужная', emoji: '🌈', category: 'aura', rarity: 'mythic', priceType: 'watermelons', price: 3000, bonuses: [{ type: 'tapPowerPct', value: 35 }, { type: 'critMulti', value: 2 }, { type: 'critChance', value: 5 }], desc: 'Максимальные бонусы' },
+
+  wings_butterfly: { id: 'wings_butterfly', name: 'Бабочки', emoji: '🦋', category: 'wings', rarity: 'common', priceType: 'coins', price: 15000, bonuses: [{ type: 'comboBonus', value: 12 }], desc: '+12% к комбо' },
+  wings_fairy: { id: 'wings_fairy', name: 'Феи', emoji: '🧚', category: 'wings', rarity: 'rare', priceType: 'coins', price: 70000, bonuses: [{ type: 'passiveIncome', value: 15 }, { type: 'luck', value: 10 }], desc: '+15% доход, +10% удачи' },
+  wings_fire: { id: 'wings_fire', name: 'Огненные', emoji: '🔥', category: 'wings', rarity: 'rare', priceType: 'coins', price: 120000, bonuses: [{ type: 'critMulti', value: 1 }, { type: 'tapPowerPct', value: 10 }], desc: '+1 крит.множ, +10% тап' },
+  wings_mecha: { id: 'wings_mecha', name: 'Механические', emoji: '🦾', category: 'wings', rarity: 'epic', priceType: 'watermelons', price: 400, bonuses: [{ type: 'autoTap', value: 1 }, { type: 'tapPowerPct', value: 15 }], desc: '+1 авто-тап, +15% силы' },
+  wings_angel: { id: 'wings_angel', name: 'Ангельские', emoji: '👼', category: 'wings', rarity: 'epic', priceType: 'watermelons', price: 700, bonuses: [{ type: 'tapPowerPct', value: 20 }, { type: 'energyRegen', value: 2 }], desc: '+20% тап, +2 энергии/сек' },
+  wings_demon: { id: 'wings_demon', name: 'Демонические', emoji: '🦇', category: 'wings', rarity: 'legendary', priceType: 'watermelons', price: 1500, bonuses: [{ type: 'critChance', value: 8 }, { type: 'critMulti', value: 2 }], desc: '+8% крит, +2 крит.множ' },
+  wings_cosmic: { id: 'wings_cosmic', name: 'Космические', emoji: '🚀', category: 'wings', rarity: 'legendary', priceType: 'watermelons', price: 2000, bonuses: [{ type: 'tapPowerPct', value: 30 }, { type: 'energyMax', value: 1500 }], desc: '+30% тап, +1500 энергии' },
+  wings_dragon: { id: 'wings_dragon', name: 'Драконьи', emoji: '🐉', category: 'wings', rarity: 'mythic', priceType: 'watermelons', price: 5000, bonuses: [{ type: 'tapPowerPct', value: 40 }, { type: 'critChance', value: 5 }, { type: 'critMulti', value: 2 }], desc: 'УЛЬТРА бонусы' },
+
+  tool_glove: { id: 'tool_glove', name: 'Перчатка силы', emoji: '🥊', category: 'tool', rarity: 'common', priceType: 'coins', price: 8000, bonuses: [{ type: 'tapPower', value: 5 }], desc: '+5 к силе тапа' },
+  tool_pickaxe: { id: 'tool_pickaxe', name: 'Кирка', emoji: '⛏️', category: 'tool', rarity: 'rare', priceType: 'coins', price: 45000, bonuses: [{ type: 'passiveIncome', value: 15 }], desc: '+15% пассивного дохода' },
+  tool_watermelon: { id: 'tool_watermelon', name: 'Арбуз-бомба', emoji: '🍉', category: 'tool', rarity: 'rare', priceType: 'coins', price: 90000, bonuses: [{ type: 'tapPower', value: 10 }, { type: 'comboBonus', value: 10 }], desc: '+10 тап, +10% комбо' },
+  tool_hammer: { id: 'tool_hammer', name: 'Молот', emoji: '🔨', category: 'tool', rarity: 'epic', priceType: 'watermelons', price: 250, bonuses: [{ type: 'tapPowerPct', value: 15 }, { type: 'critMulti', value: 1 }], desc: '+15% тап, +1 крит.множ' },
+  tool_wand: { id: 'tool_wand', name: 'Волшебная палочка', emoji: '🪄', category: 'tool', rarity: 'epic', priceType: 'watermelons', price: 500, bonuses: [{ type: 'luck', value: 15 }, { type: 'tapPowerPct', value: 10 }], desc: '+15% удачи, +10% тап' },
+  tool_sword: { id: 'tool_sword', name: 'Меч', emoji: '⚔️', category: 'tool', rarity: 'legendary', priceType: 'watermelons', price: 1000, bonuses: [{ type: 'critChance', value: 8 }, { type: 'critMulti', value: 2 }], desc: '+8% крит, +2 крит.множ' },
+  tool_diamond: { id: 'tool_diamond', name: 'Алмазный кулак', emoji: '💎', category: 'tool', rarity: 'mythic', priceType: 'watermelons', price: 4000, bonuses: [{ type: 'tapPowerPct', value: 50 }, { type: 'critMulti', value: 3 }, { type: 'critChance', value: 5 }], desc: 'УЛЬТРА сила' }
+};
+
+const CATEGORIES = [
+  { id: 'all', name: 'Всё', emoji: '🎁' },
+  { id: 'skin', name: 'Скины', emoji: '🎨' },
+  { id: 'hat', name: 'Шляпы', emoji: '🎩' },
+  { id: 'glasses', name: 'Очки', emoji: '👓' },
+  { id: 'aura', name: 'Ауры', emoji: '✨' },
+  { id: 'wings', name: 'Крылья', emoji: '🪽' },
+  { id: 'tool', name: 'Оружие', emoji: '⚔️' }
+];
+
+const RARITY_NAMES = { common: 'Обычный', rare: 'Редкий', epic: 'Эпический', legendary: 'Легендарный', mythic: 'Мифический', exclusive: 'Эксклюзив' };
+const BONUS_NAMES = { critChance: 'Шанс крита', critMulti: 'Множитель крита', tapPower: 'Сила тапа', tapPowerPct: 'Сила тапа', energyMax: 'Макс. энергия', energyRegen: 'Реген энергии', passiveIncome: 'Пассивный доход', comboBonus: 'Комбо-бонус', doubleTap: 'Двойной тап', autoTap: 'Авто-тап', luck: 'Удача' };
+const BONUS_UNITS = { critChance: '%', critMulti: '', tapPower: '', tapPowerPct: '%', energyMax: '', energyRegen: '/сек', passiveIncome: '%', comboBonus: '%', doubleTap: '%', autoTap: '/сек', luck: '%' };
+const BONUS_CLASS = { critChance: 'bonus-crit', critMulti: 'bonus-crit', tapPower: 'bonus-tap', tapPowerPct: 'bonus-tap', energyMax: 'bonus-energy', energyRegen: 'bonus-energy', passiveIncome: 'bonus-passive', comboBonus: 'bonus-combo', doubleTap: 'bonus-special', autoTap: 'bonus-special', luck: 'bonus-special' };
+
+const UPGRADES = [
+  { key: 'tap', name: 'Мощный тап', icon: '💪', desc: '+2 к силе тапа', baseCost: 500, growth: 1.7, effect: () => state.tapPower += 2 },
+  { key: 'energy', name: 'Большая энергия', icon: '⚡', desc: '+500 макс. энергии', baseCost: 800, growth: 1.8, effect: () => { state.maxEnergy += 500; state.energy += 500; } },
+  { key: 'regen', name: 'Быстрая регенерация', icon: '🔋', desc: '+1 энергии/сек', baseCost: 1000, growth: 1.9, effect: () => state.energyRegen += 1 },
+  { key: 'crit', name: 'Критический удар', icon: '💥', desc: '+3% шанс крита', baseCost: 2000, growth: 2.2, effect: () => state.critChance += 0.03 }
+];
+
+const WATERMELON_PACKS = [
+  { sku: 'watermelon_100', name: '100 арбузиков', stars: 100, amount: 100 },
+  { sku: 'watermelon_500', name: '500 арбузиков', stars: 450, amount: 550, save: '10%' },
+  { sku: 'watermelon_1500', name: '1500 арбузиков', stars: 1200, amount: 1800, save: '20%' },
+  { sku: 'watermelon_5000', name: '5000 арбузиков', stars: 3500, amount: 7000, save: '30%' }
+];
+
+const MINE_CARDS = [
+  { id: 'farm', name: 'Арбузная ферма', icon: '🍉', baseCost: 1000, baseProfit: 100, growth: 1.5 },
+  { id: 'cafe', name: 'Кафе у бегемота', icon: '☕', baseCost: 5000, baseProfit: 450, growth: 1.55 },
+  { id: 'shop', name: 'Магазин мерча', icon: '🛍️', baseCost: 15000, baseProfit: 1200, growth: 1.6 },
+  { id: 'gym', name: 'Качалка для бегемотов', icon: '🏋️', baseCost: 50000, baseProfit: 3800, growth: 1.65 },
+  { id: 'casino', name: 'Казино Hippo', icon: '🎰', baseCost: 150000, baseProfit: 10500, growth: 1.7 },
+  { id: 'bank', name: 'Hippo Bank', icon: '🏦', baseCost: 500000, baseProfit: 32000, growth: 1.75 },
+  { id: 'rocket', name: 'Hippo Rocket', icon: '🚀', baseCost: 2000000, baseProfit: 120000, growth: 1.8 },
+  { id: 'space', name: 'Космо-империя', icon: '🌌', baseCost: 10000000, baseProfit: 580000, growth: 1.85 }
+];
+
+const TASKS = [
+  { id: 'tg_channel', name: 'Подписаться на канал', icon: '📢', category: 'social', rewardCoins: 5000, rewardWm: 0, desc: 'Наш Telegram канал', action: 'subscribe', target: 1 },
+  { id: 'tg_chat', name: 'Вступить в чат', icon: '💬', category: 'social', rewardCoins: 3000, rewardWm: 0, desc: 'Чат сообщества', action: 'chat', target: 1 },
+  { id: 'twitter', name: 'Подписка в Twitter', icon: '🐦', category: 'social', rewardCoins: 4000, rewardWm: 0, desc: 'Наш Twitter/X', action: 'twitter', target: 1 },
+  { id: 'youtube', name: 'Подписка на YouTube', icon: '📺', category: 'social', rewardCoins: 4000, rewardWm: 0, desc: 'Наш YouTube канал', action: 'youtube', target: 1 },
+  { id: 'tiktok', name: 'Подписка в TikTok', icon: '🎵', category: 'social', rewardCoins: 4000, rewardWm: 0, desc: 'Наш TikTok', action: 'tiktok', target: 1 },
+  { id: 'tap1000', name: '1000 тапов', icon: '👆', category: 'game', rewardCoins: 2000, rewardWm: 0, desc: 'Всего тапов', action: 'tap1000', target: 1000 },
+  { id: 'tap10000', name: '10,000 тапов', icon: '🔥', category: 'game', rewardCoins: 10000, rewardWm: 5, desc: 'Мастер тапа', action: 'tap10000', target: 10000 },
+  { id: 'tap100000', name: '100,000 тапов', icon: '💥', category: 'game', rewardCoins: 50000, rewardWm: 50, desc: 'Легенда тапа', action: 'tap100000', target: 100000 },
+  { id: 'level5', name: '5 уровень', icon: '⭐', category: 'game', rewardCoins: 8000, rewardWm: 0, desc: 'Прокачка', action: 'level5', target: 5 },
+  { id: 'level10', name: '10 уровень', icon: '🌟', category: 'game', rewardCoins: 30000, rewardWm: 20, desc: 'Мастер', action: 'level10', target: 10 },
+  { id: 'minigame1', name: 'Сыграть в тир', icon: '🎯', category: 'game', rewardCoins: 3000, rewardWm: 2, desc: 'Мини-игра', action: 'minigame1', target: 1 },
+  { id: 'chest3', name: 'Открыть 3 сундука', icon: '📦', category: 'game', rewardCoins: 5000, rewardWm: 3, desc: 'Сундуки', action: 'chest3', target: 3 },
+  { id: 'invite1', name: 'Пригласить друга', icon: '👥', category: 'friends', rewardCoins: 5000, rewardWm: 0, desc: 'Первый друг', action: 'invite1', target: 1 },
+  { id: 'invite3', name: 'Пригласить 3 друзей', icon: '🎉', category: 'friends', rewardCoins: 15000, rewardWm: 10, desc: 'Реферальная программа', action: 'invite3', target: 3 },
+  { id: 'invite10', name: 'Пригласить 10 друзей', icon: '🏆', category: 'friends', rewardCoins: 50000, rewardWm: 50, desc: 'Супер бонус', action: 'invite10', target: 10 }
+];
+
+const TASK_CATEGORIES = [
+  { id: 'all', name: 'Все', emoji: '📋' },
+  { id: 'social', name: 'Социальные', emoji: '📱' },
+  { id: 'game', name: 'Игровые', emoji: '🎮' },
+  { id: 'friends', name: 'Друзья', emoji: '👥' }
+];
+
+const DAILY_REWARDS = [
+  { day: 1, reward: 1000, emoji: '💰' },
+  { day: 2, reward: 2500, emoji: '💎' },
+  { day: 3, reward: 5000, emoji: '🎁' },
+  { day: 4, reward: 10000, emoji: '🔥' },
+  { day: 5, reward: 20000, emoji: '⭐' },
+  { day: 6, reward: 40000, emoji: '👑' },
+  { day: 7, reward: 0, emoji: '🦛', skinReward: 'skin_weekly' }
+];
+
+const CHESTS = [
+  { id: 'wood', name: 'Деревянный', emoji: '📦', price: 2000, min: 1500, max: 4000 },
+  { id: 'silver', name: 'Серебряный', emoji: '🥈', price: 8000, min: 6000, max: 15000 },
+  { id: 'gold', name: 'Золотой', emoji: '🥇', price: 25000, min: 20000, max: 50000 },
+  { id: 'diamond', name: 'Бриллиант', emoji: '💎', price: 80000, min: 60000, max: 180000 },
+  { id: 'legend', name: 'Легендарный', emoji: '🌟', price: 250000, min: 200000, max: 600000 },
+  { id: 'mythic', name: 'Мифический', emoji: '🔮', price: 1000000, min: 800000, max: 2500000 }
+];
+
+const ACHIEVEMENTS_DEF = [
+  { id: 'tap100', name: 'Первые шаги', desc: '100 тапов', check: s => s.totalTaps >= 100, icon: '🎯' },
+  { id: 'tap1000', name: 'Тапер', desc: '1,000 тапов', check: s => s.totalTaps >= 1000, icon: '👆' },
+  { id: 'tap10000', name: 'Мастер тапа', desc: '10,000 тапов', check: s => s.totalTaps >= 10000, icon: '🏆' },
+  { id: 'tap100000', name: 'Легенда', desc: '100,000 тапов', check: s => s.totalTaps >= 100000, icon: '👑' },
+  { id: 'daily7', name: 'Неделя с бегемотом', desc: '7 дней подряд', check: s => s.dailyStreak >= 7, icon: '📅' },
+  { id: 'item5', name: 'Шопоголик', desc: '5 предметов', check: s => s.inventory.length >= 5, icon: '🛍️' },
+  { id: 'item15', name: 'Коллекционер', desc: '15 предметов', check: s => s.inventory.length >= 15, icon: '🎭' },
+  { id: 'item30', name: 'Магнат стиля', desc: '30 предметов', check: s => s.inventory.length >= 30, icon: '💎' },
+  { id: 'balance10k', name: 'Богач', desc: '10,000 монет', check: s => s.balance >= 10000, icon: '💰' },
+  { id: 'balance100k', name: 'Магнат', desc: '100,000 монет', check: s => s.balance >= 100000, icon: '💎' },
+  { id: 'balance1m', name: 'Миллионер', desc: '1,000,000 монет', check: s => s.balance >= 1000000, icon: '🤑' },
+  { id: 'chest5', name: 'Охотник за сокровищами', desc: '5 сундуков', check: s => s.chestsOpened >= 5, icon: '📦' },
+  { id: 'friend3', name: 'Дружелюбный', desc: '3 друга', check: s => s.friends >= 3, icon: '🤝' },
+  { id: 'level5', name: 'Путь воина', desc: '5 уровень', check: s => getLevel(s).lvl >= 5, icon: '⭐' },
+  { id: 'leagueLegend', name: 'Легенда лиги', desc: 'Достигни лиги Legend', check: s => getLeague(s.balance).id === 'legend', icon: '🏆' }
+];
+
+// ============ HELPERS ============
+function formatNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e4) return (n/1e3).toFixed(1) + 'K';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.floor(n).toString();
+}
+
+function getLevel(s = state) {
+  let cur = LEVELS[0];
+  for (const l of LEVELS) { if (s.totalTaps >= l.req) cur = l; }
+  return cur;
+}
+
+function getNextLevel(s = state) {
+  const cur = getLevel(s);
+  const idx = LEVELS.findIndex(l => l.lvl === cur.lvl);
+  return LEVELS[idx + 1] || null;
+}
+
+function getLevelProgress(s = state) {
+  const cur = getLevel(s);
+  const next = getNextLevel(s);
+  if (!next) return 1;
+  return (s.totalTaps - cur.req) / (next.req - cur.req);
+}
+
+function getEquipmentBonuses() {
+  const totals = { critChance: 0, critMulti: 0, tapPower: 0, tapPowerPct: 0, energyMax: 0, energyRegen: 0, passiveIncome: 0, comboBonus: 0, doubleTap: 0, autoTap: 0, luck: 0 };
+  for (const slot of Object.values(state.equipped)) {
+    if (!slot) continue;
+    const item = ITEMS[slot];
+    if (!item) continue;
+    for (const bonus of item.bonuses) {
+      if (totals[bonus.type] !== undefined) totals[bonus.type] += bonus.value;
+    }
+  }
+  totals.tapPowerPct = Math.min(totals.tapPowerPct, 50);
+  return totals;
+}
+
+function getEffectiveTapPower() {
+  const level = getLevel().lvl;
+  const tapBoostLevel = state.upgrades.tap;
+  const eqBonuses = getEquipmentBonuses();
+  const league = getLeague();
+  const baseTapPower = 1 + (level * 0.5) + (tapBoostLevel * 2) + state.tapPower - 1 + eqBonuses.tapPower;
+  const skinBonus = Math.min(eqBonuses.tapPowerPct / 100, 0.5);
+  const watermelonBonus = state.watermelons > 0 ? 0.10 : 0;
+  const leagueBonus = league.bonusPct / 100;
+  let finalPower = baseTapPower * (1 + skinBonus + watermelonBonus) * (1 + leagueBonus);
+  const now = Date.now();
+  if (state.boosts.x2 > now) finalPower *= 2;
+  if (state.boosts.x3 > now) finalPower *= 3;
+  return Math.floor(finalPower);
+}
+
+function getEffectiveCritChance() { return state.critChance + getEquipmentBonuses().critChance / 100; }
+function getEffectiveCritMulti() { return state.critMulti + getEquipmentBonuses().critMulti; }
+function getEffectiveMaxEnergy() { return state.maxEnergy + getEquipmentBonuses().energyMax; }
+function getEffectiveEnergyRegen() { return state.energyRegen + getEquipmentBonuses().energyRegen; }
+function getEffectivePassiveIncome() {
+  const eqBonuses = getEquipmentBonuses();
+  let total = 0;
+  for (const card of MINE_CARDS) {
+    const lvl = state.mineCards[card.id] || 0;
+    if (lvl > 0) total += card.baseProfit * lvl;
+  }
+  return Math.floor(total * (1 + eqBonuses.passiveIncome / 100));
+}
+function getEffectiveComboBonus() { return getEquipmentBonuses().comboBonus; }
+function getEffectiveDoubleTapChance() { return getEquipmentBonuses().doubleTap / 100; }
+function getEffectiveAutoTap() { return getEquipmentBonuses().autoTap; }
+function getEffectiveLuck() { return getEquipmentBonuses().luck; }
+function getPassiveIncome() { return getEffectivePassiveIncome(); }
+function getMineUpgradeCost(card, lvl) { return Math.floor(card.baseCost * Math.pow(card.growth, lvl)); }
+
+function lighten(hex, percent) {
+  if (hex === 'rainbow') return '#fff';
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, (num >> 16) + Math.floor(255 * percent / 100));
+  const g = Math.min(255, ((num >> 8) & 0xff) + Math.floor(255 * percent / 100));
+  const b = Math.min(255, (num & 0xff) + Math.floor(255 * percent / 100));
+  return `rgb(${r},${g},${b})`;
+}
+function darken(hex, percent) {
+  if (hex === 'rainbow') return '#000';
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.max(0, (num >> 16) - Math.floor(255 * percent / 100));
+  const g = Math.max(0, ((num >> 8) & 0xff) - Math.floor(255 * percent / 100));
+  const b = Math.max(0, (num & 0xff) - Math.floor(255 * percent / 100));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ============ HIPPO SVG ============
+function renderHippo() {
+  const skinId = state.equipped.skin || 'skin_default';
+  const skin = ITEMS[skinId] || ITEMS.skin_default;
+  const color = skin.color;
+  const isRainbow = color === 'rainbow';
+  const bodyFill = isRainbow ? 'url(#rainbowGrad)' : color;
+  const bellyFill = isRainbow ? 'url(#rainbowBelly)' : lighten(color, 35);
+  const darkFill = isRainbow ? '#4a1d1d' : darken(color, 35);
+  const cheekColor = isRainbow ? '#fca5a5' : '#ff9ec7';
+  const earInner = isRainbow ? '#fca5a5' : lighten(color, 25);
+  
+  const hatId = state.equipped.hat;
+  const glassesId = state.equipped.glasses;
+  const auraId = state.equipped.aura;
+  const wingsId = state.equipped.wings;
+  const toolId = state.equipped.tool;
+  
+  const hat = hatId ? ITEMS[hatId] : null;
+  const glasses = glassesId ? ITEMS[glassesId] : null;
+  const aura = auraId ? ITEMS[auraId] : null;
+  const wings = wingsId ? ITEMS[wingsId] : null;
+  const tool = toolId ? ITEMS[toolId] : null;
+  
+  let auraSvg = '';
+  if (aura) {
+    const auraColors = {
+      aura_fire: ['#ef4444', '#f97316'], aura_ice: ['#60a5fa', '#a5f3fc'], aura_galaxy: ['#a855f7', '#3b82f6'],
+      aura_rainbow: ['#ef4444', '#a855f7'], aura_gold: ['#fbbf24', '#f59e0b'], aura_electric: ['#22d3ee', '#fde047'],
+      aura_shadow: ['#374151', '#111827'], aura_love: ['#ec4899', '#f472b6']
+    };
+    const [c1, c2] = auraColors[aura.id] || ['#ff9500', '#ec4899'];
+    auraSvg = `<defs><linearGradient id="auraGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
+      <circle cx="120" cy="130" r="110" fill="none" stroke="url(#auraGrad)" stroke-width="3" opacity="0.6">
+        <animate attributeName="r" values="105;115;105" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2s" repeatCount="indefinite"/>
+      </circle>`;
+  }
+  
+  let wingsSvg = '';
+  if (wings) {
+    const wingColors = {
+      wings_angel: ['#fff', '#e0e7ff'], wings_demon: ['#374151', '#111827'], wings_dragon: ['#ef4444', '#7f1d1d'],
+      wings_fairy: ['#f9a8d4', '#fce7f3'], wings_mecha: ['#6b7280', '#374151'], wings_cosmic: ['#a855f7', '#3b82f6'],
+      wings_butterfly: ['#f472b6', '#a855f7'], wings_fire: ['#f97316', '#ef4444']
+    };
+    const [w1, w2] = wingColors[wings.id] || ['#fff', '#ccc'];
+    wingsSvg = `<g opacity="0.95">
+      <path d="M 50 110 Q 10 80 5 130 Q 10 170 45 160 Q 30 140 50 110 Z" fill="${w1}" stroke="${w2}" stroke-width="1.5"/>
+      <path d="M 190 110 Q 230 80 235 130 Q 230 170 195 160 Q 210 140 190 110 Z" fill="${w1}" stroke="${w2}" stroke-width="1.5"/>
+    </g>`;
+  }
+  
+  let hatSvg = '';
+  if (hat) {
+    const hatEmojis = {
+      hat_crown: `<g transform="translate(120, 25)"><path d="M -25 0 L -20 -20 L -10 -10 L 0 -25 L 10 -10 L 20 -20 L 25 0 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5"/><circle cx="-20" cy="-20" r="2" fill="#ef4444"/><circle cx="0" cy="-25" r="2.5" fill="#3b82f6"/><circle cx="20" cy="-20" r="2" fill="#22c55e"/><rect x="-25" y="0" width="50" height="5" fill="#fbbf24"/></g>`,
+      hat_tophat: `<g transform="translate(120, 20)"><rect x="-18" y="-25" width="36" height="30" fill="#1f2937"/><ellipse cx="0" cy="5" rx="28" ry="4" fill="#1f2937"/><rect x="-18" y="-5" width="36" height="3" fill="#dc2626"/></g>`,
+      hat_cap: `<g transform="translate(120, 25)"><path d="M -25 0 Q -25 -20 0 -22 Q 25 -20 25 0 Z" fill="#dc2626"/><path d="M 0 0 Q 20 2 30 8 L 28 12 Q 15 8 0 5 Z" fill="#dc2626"/><circle cx="0" cy="-15" r="3" fill="#fff"/></g>`,
+      hat_wizard: `<g transform="translate(120, 15)"><path d="M -22 15 L 0 -30 L 22 15 Z" fill="#7c3aed"/><ellipse cx="0" cy="15" rx="28" ry="5" fill="#7c3aed"/><circle cx="-5" cy="-5" r="2" fill="#fbbf24"/><circle cx="8" cy="5" r="1.5" fill="#fbbf24"/></g>`,
+      hat_halo: `<g transform="translate(120, 15)"><ellipse cx="0" cy="0" rx="30" ry="8" fill="none" stroke="#fbbf24" stroke-width="3"><animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/></ellipse></g>`,
+      hat_horns: `<g transform="translate(120, 25)"><path d="M -28 0 Q -35 -15 -25 -25 Q -20 -15 -22 0 Z" fill="#7f1d1d"/><path d="M 28 0 Q 35 -15 25 -25 Q 20 -15 22 0 Z" fill="#7f1d1d"/></g>`,
+      hat_party: `<g transform="translate(120, 20)"><path d="M -15 10 L 0 -25 L 15 10 Z" fill="#ec4899"/><circle cx="0" cy="-25" r="3" fill="#fbbf24"/></g>`,
+      hat_cowboy: `<g transform="translate(120, 25)"><ellipse cx="0" cy="5" rx="35" ry="6" fill="#92400e"/><path d="M -20 5 Q -20 -15 0 -18 Q 20 -15 20 5 Z" fill="#92400e"/></g>`,
+      hat_viking: `<g transform="translate(120, 25)"><path d="M -25 0 Q -25 -15 0 -18 Q 25 -15 25 0 Z" fill="#78350f"/><path d="M -25 -5 Q -35 -20 -30 -30 Q -25 -20 -20 -10 Z" fill="#f3f4f6"/><path d="M 25 -5 Q 35 -20 30 -30 Q 25 -20 20 -10 Z" fill="#f3f4f6"/></g>`,
+      hat_astronaut: `<g transform="translate(120, 25)"><path d="M -22 5 Q -22 -15 0 -18 Q 22 -15 22 5 Z" fill="#fff" stroke="#9ca3af" stroke-width="1.5"/><rect x="-15" y="-10" width="30" height="12" rx="3" fill="#60a5fa" opacity="0.6"/></g>`
+    };
+    hatSvg = hatEmojis[hat.id] || '';
+  }
+  
+  let glassesSvg = '';
+  if (glasses) {
+    const glassesEmojis = {
+      glasses_sun: `<g transform="translate(120, 68)"><rect x="-30" y="-6" width="22" height="12" rx="3" fill="#1f2937" opacity="0.85"/><rect x="8" y="-6" width="22" height="12" rx="3" fill="#1f2937" opacity="0.85"/><line x1="-8" y1="0" x2="8" y2="0" stroke="#1f2937" stroke-width="2"/></g>`,
+      glasses_vr: `<g transform="translate(120, 68)"><rect x="-32" y="-10" width="64" height="20" rx="5" fill="#1f2937"/><rect x="-28" y="-7" width="24" height="14" rx="2" fill="#3b82f6" opacity="0.6"/><rect x="4" y="-7" width="24" height="14" rx="2" fill="#3b82f6" opacity="0.6"/></g>`,
+      glasses_monocle: `<g transform="translate(145, 68)"><circle cx="0" cy="0" r="10" fill="none" stroke="#fbbf24" stroke-width="2"/><circle cx="0" cy="0" r="8" fill="#60a5fa" opacity="0.2"/><line x1="0" y1="10" x2="-5" y2="25" stroke="#fbbf24" stroke-width="1"/></g>`,
+      glasses_heart: `<g transform="translate(120, 68)"><path d="M -20 0 C -20 -5 -15 -8 -12 -5 C -9 -8 -4 -5 -4 0 C -4 5 -12 10 -12 10 C -12 10 -20 5 -20 0 Z" fill="#ec4899"/><path d="M 4 0 C 4 -5 9 -8 12 -5 C 15 -8 20 -5 20 0 C 20 5 12 10 12 10 C 12 10 4 5 4 0 Z" fill="#ec4899"/></g>`,
+      glasses_neon: `<g transform="translate(120, 68)"><rect x="-30" y="-6" width="22" height="12" rx="2" fill="none" stroke="#22d3ee" stroke-width="2"/><rect x="8" y="-6" width="22" height="12" rx="2" fill="none" stroke="#ec4899" stroke-width="2"/><line x1="-8" y1="0" x2="8" y2="0" stroke="#a855f7" stroke-width="2"/></g>`,
+      glasses_3d: `<g transform="translate(120, 68)"><rect x="-30" y="-6" width="22" height="12" rx="2" fill="#ef4444" opacity="0.7"/><rect x="8" y="-6" width="22" height="12" rx="2" fill="#3b82f6" opacity="0.7"/><line x1="-8" y1="0" x2="8" y2="0" stroke="#1f2937" stroke-width="2"/></g>`,
+      glasses_scanner: `<g transform="translate(120, 68)"><rect x="-30" y="-7" width="60" height="14" rx="3" fill="#1f2937" stroke="#22d3ee" stroke-width="1"/><rect x="-26" y="-4" width="52" height="8" fill="#22d3ee" opacity="0.3"/></g>`,
+      glasses_pixel: `<g transform="translate(120, 68)"><rect x="-30" y="-6" width="22" height="12" fill="#1f2937"/><rect x="8" y="-6" width="22" height="12" fill="#1f2937"/><rect x="-28" y="-4" width="4" height="4" fill="#22c55e"/><rect x="10" y="-4" width="4" height="4" fill="#22c55e"/><line x1="-8" y1="0" x2="8" y2="0" stroke="#1f2937" stroke-width="2"/></g>`
+    };
+    glassesSvg = glassesEmojis[glasses.id] || '';
+  }
+  
+  let toolSvg = '';
+  if (tool) {
+    const toolEmojis = {
+      tool_glove: `<g transform="translate(55, 150) rotate(-15)"><ellipse cx="0" cy="0" rx="12" ry="16" fill="#dc2626"/><rect x="-10" y="-5" width="20" height="4" fill="#fbbf24"/></g>`,
+      tool_hammer: `<g transform="translate(50, 145) rotate(-20)"><rect x="-2" y="-5" width="4" height="30" fill="#92400e"/><rect x="-12" y="-15" width="24" height="12" rx="2" fill="#6b7280"/></g>`,
+      tool_sword: `<g transform="translate(50, 140) rotate(-25)"><rect x="-1.5" y="-25" width="3" height="30" fill="#e5e7eb"/><polygon points="-1.5,-25 1.5,-25 0,-32" fill="#e5e7eb"/><rect x="-6" y="5" width="12" height="3" fill="#fbbf24"/></g>`,
+      tool_wand: `<g transform="translate(50, 140) rotate(-25)"><rect x="-1.5" y="-20" width="3" height="30" fill="#78350f"/><polygon points="0,-28 -4,-20 4,-20" fill="#fbbf24"/></g>`,
+      tool_laser: `<g transform="translate(50, 145) rotate(-20)"><rect x="-4" y="-10" width="8" height="22" rx="2" fill="#374151"/><rect x="-2" y="-15" width="4" height="6" fill="#ef4444"/></g>`,
+      tool_pickaxe: `<g transform="translate(50, 145) rotate(-20)"><rect x="-1.5" y="-5" width="3" height="28" fill="#92400e"/><path d="M -10 -10 L 10 -10 L 8 -5 L -8 -5 Z" fill="#6b7280"/></g>`,
+      tool_diamond: `<g transform="translate(50, 140) rotate(-20)"><polygon points="0,-18 10,-8 6,5 -6,5 -10,-8" fill="#60a5fa" stroke="#3b82f6" stroke-width="1"/><rect x="-3" y="5" width="6" height="15" fill="#92400e"/></g>`,
+      tool_watermelon: `<g transform="translate(50, 145) rotate(-20)"><circle cx="0" cy="0" r="12" fill="#22c55e"/><path d="M -10 -5 Q 0 -8 10 -5" stroke="#16a34a" stroke-width="1.5" fill="none"/></g>`
+    };
+    toolSvg = toolEmojis[tool.id] || '';
+  }
+  
+  const svg = `
+    <svg class="hippo-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${isRainbow ? `
+        <linearGradient id="rainbowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ef4444"/><stop offset="20%" stop-color="#f97316"/><stop offset="40%" stop-color="#eab308"/>
+          <stop offset="60%" stop-color="#22c55e"/><stop offset="80%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+        <linearGradient id="rainbowBelly" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fef3c7"/><stop offset="50%" stop-color="#fce7f3"/><stop offset="100%" stop-color="#e0e7ff"/>
+        </linearGradient>` : ''}
+        <radialGradient id="bodyShine" cx="35%" cy="25%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.35)"/><stop offset="50%" stop-color="rgba(255,255,255,0.05)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <radialGradient id="bellyGrad" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="${isRainbow ? '#fff' : lighten(color, 50)}"/><stop offset="100%" stop-color="${bellyFill}"/>
+        </radialGradient>
+        <radialGradient id="eyeShine" cx="30%" cy="30%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#f0f0f0"/></radialGradient>
+        <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dx="0" dy="3" result="offsetblur"/>
+          <feComponentTransfer><feFuncA type="linear" slope="0.3"/></feComponentTransfer>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      ${auraSvg}
+      ${wingsSvg}
+      <ellipse cx="120" cy="218" rx="75" ry="10" fill="rgba(0,0,0,0.4)" filter="url(#softShadow)"/>
+      <ellipse cx="82" cy="195" rx="16" ry="20" fill="${bodyFill}"/>
+      <ellipse cx="158" cy="195" rx="16" ry="20" fill="${bodyFill}"/>
+      <ellipse cx="82" cy="208" rx="14" ry="5" fill="${darkFill}" opacity="0.3"/>
+      <ellipse cx="158" cy="208" rx="14" ry="5" fill="${darkFill}" opacity="0.3"/>
+      <circle cx="76" cy="210" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <circle cx="82" cy="212" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <circle cx="88" cy="210" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <circle cx="152" cy="210" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <circle cx="158" cy="212" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <circle cx="164" cy="210" r="2.5" fill="${isRainbow ? '#fef3c7' : lighten(color, 50)}"/>
+      <ellipse cx="120" cy="145" rx="82" ry="70" fill="${bodyFill}"/>
+      <ellipse cx="120" cy="145" rx="82" ry="70" fill="url(#bodyShine)"/>
+      <ellipse cx="120" cy="158" rx="52" ry="44" fill="url(#bellyGrad)"/>
+      <ellipse cx="120" cy="158" rx="52" ry="44" fill="none" stroke="${isRainbow ? 'rgba(255,255,255,0.6)' : lighten(color, 60)}" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="120" cy="168" r="3" fill="${darkFill}" opacity="0.4"/>
+      <ellipse cx="110" cy="145" rx="20" ry="12" fill="rgba(255,255,255,0.25)"/>
+      <ellipse cx="58" cy="150" rx="14" ry="22" fill="${bodyFill}" transform="rotate(-15 58 150)"/>
+      <ellipse cx="182" cy="150" rx="14" ry="22" fill="${bodyFill}" transform="rotate(15 182 150)"/>
+      ${toolSvg}
+      <ellipse cx="120" cy="80" rx="62" ry="55" fill="${bodyFill}"/>
+      <ellipse cx="105" cy="60" rx="30" ry="20" fill="url(#bodyShine)" opacity="0.8"/>
+      <ellipse cx="72" cy="38" rx="12" ry="16" fill="${bodyFill}" transform="rotate(-25 72 38)"/>
+      <ellipse cx="168" cy="38" rx="12" ry="16" fill="${bodyFill}" transform="rotate(25 168 38)"/>
+      <ellipse cx="72" cy="40" rx="6" ry="10" fill="${earInner}" transform="rotate(-25 72 40)" opacity="0.8"/>
+      <ellipse cx="168" cy="40" rx="6" ry="10" fill="${earInner}" transform="rotate(25 168 40)" opacity="0.8"/>
+      <ellipse cx="120" cy="98" rx="38" ry="26" fill="${isRainbow ? '#fecaca' : lighten(color, 40)}"/>
+      <ellipse cx="110" cy="88" rx="15" ry="8" fill="rgba(255,255,255,0.3)"/>
+      <ellipse cx="108" cy="96" rx="3.5" ry="5" fill="${darkFill}"/>
+      <ellipse cx="132" cy="96" rx="3.5" ry="5" fill="${darkFill}"/>
+      <ellipse cx="95" cy="68" rx="11" ry="13" fill="url(#eyeShine)"/>
+      <ellipse cx="145" cy="68" rx="11" ry="13" fill="url(#eyeShine)"/>
+      <circle cx="96" cy="70" r="7" fill="#2d1b4e"/><circle cx="146" cy="70" r="7" fill="#2d1b4e"/>
+      <circle cx="97" cy="71" r="4.5" fill="#0a0a12"/><circle cx="147" cy="71" r="4.5" fill="#0a0a12"/>
+      <circle cx="93" cy="66" r="3" fill="#fff"/><circle cx="143" cy="66" r="3" fill="#fff"/>
+      <circle cx="99" cy="73" r="1.5" fill="#fff" opacity="0.8"/><circle cx="149" cy="73" r="1.5" fill="#fff" opacity="0.8"/>
+      <path d="M 84 55 Q 95 52 106 55" stroke="${darkFill}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 134 55 Q 145 52 156 55" stroke="${darkFill}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      ${glassesSvg}
+      <ellipse cx="72" cy="88" rx="9" ry="6" fill="${cheekColor}" opacity="0.5"/>
+      <ellipse cx="168" cy="88" rx="9" ry="6" fill="${cheekColor}" opacity="0.5"/>
+      <path d="M 105 110 Q 120 120 135 110" stroke="${darkFill}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="120" cy="114" rx="4" ry="2" fill="#ff6b9d" opacity="0.8"/>
+      <path d="M 195 155 Q 205 150 202 140" stroke="${bodyFill}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="202" cy="140" r="3" fill="${bodyFill}"/>
+      ${hatSvg}
+    </svg>
+  `;
+  
+  const container = document.getElementById('hippo');
+  container.innerHTML = svg;
+  container.className = 'hippo-container';
+  
+  if (skinId === 'skin_golden') container.style.filter = 'drop-shadow(0 0 30px rgba(251,191,36,0.8)) drop-shadow(0 0 60px rgba(251,191,36,0.4))';
+  else if (skinId === 'skin_fire') container.style.filter = 'drop-shadow(0 0 30px rgba(239,68,68,0.7)) drop-shadow(0 0 60px rgba(249,115,22,0.4))';
+  else if (skinId === 'skin_galaxy') container.style.filter = 'drop-shadow(0 0 30px rgba(168,85,247,0.8)) drop-shadow(0 0 60px rgba(59,130,246,0.4))';
+  else if (skinId === 'skin_rainbow') container.style.filter = 'drop-shadow(0 0 30px rgba(239,68,68,0.6)) drop-shadow(0 0 60px rgba(168,85,247,0.4))';
+  else container.style.filter = 'drop-shadow(0 20px 40px rgba(184,165,212,0.4))';
+}
+
+// ============ BACKGROUND ============
+function initBackground() {
+  const starsContainer = document.getElementById('stars');
+  let starsHtml = '';
+  for (let i = 0; i < 50; i++) {
+    const size = Math.random() * 2 + 1;
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
+    const dur = Math.random() * 3 + 2;
+    const delay = Math.random() * 3;
+    const op = Math.random() * 0.6 + 0.2;
+    starsHtml += `<div class="star" style="width:${size}px;height:${size}px;left:${x}%;top:${y}%;--dur:${dur}s;--op:${op};animation-delay:${delay}s;"></div>`;
+  }
+  starsContainer.innerHTML = starsHtml;
+  
+  const emojisContainer = document.getElementById('float-emojis');
+  const emojis = ['🍉', '💰', '⭐', '💎', '🪙'];
+  let emojisHtml = '';
+  for (let i = 0; i < 8; i++) {
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    const x = Math.random() * 100;
+    const dur = Math.random() * 15 + 20;
+    const delay = Math.random() * 20;
+    const size = Math.random() * 10 + 16;
+    emojisHtml += `<div class="float-emoji" style="left:${x}%;font-size:${size}px;--dur:${dur}s;animation-delay:${delay}s;">${emoji}</div>`;
+  }
+  emojisContainer.innerHTML = emojisHtml;
+}
+
+// ============ TAP HANDLING ============
+const tapArea = document.getElementById('tap-area');
+const hippoEl = document.getElementById('hippo');
+const activeTouches = new Set();
+let comboCount = 0;
+let comboTimer = null;
+let lastTapTime = 0;
+
+function handleTap(x, y) {
+  if (state.energy < 1) { showToast('⚡ Нет энергии! Подождите...', 'error'); return; }
+  
+  const now = Date.now();
+  const timeSinceLast = now - lastTapTime;
+  lastTapTime = now;
+  
+  if (timeSinceLast < 500) comboCount++;
+  else comboCount = 1;
+  
+  clearTimeout(comboTimer);
+  comboTimer = setTimeout(() => {
+    comboCount = 0;
+    document.getElementById('combo-display').classList.remove('active');
+  }, 1000);
+  
+  if (comboCount >= 5) {
+    const cd = document.getElementById('combo-display');
+    cd.textContent = `🔥 COMBO x${comboCount}`;
+    cd.classList.remove('active');
+    void cd.offsetWidth;
+    cd.classList.add('active');
+  }
+  
+  let power = getEffectiveTapPower();
+  
+  if (comboCount >= 5) {
+    const comboMulti = 1 + Math.min(comboCount - 4, 20) * 0.05;
+    const eqComboBonus = 1 + getEffectiveComboBonus() / 100;
+    power = Math.floor(power * comboMulti * eqComboBonus);
+  }
+  
+  let isDouble = false;
+  if (Math.random() < getEffectiveDoubleTapChance()) { power *= 2; isDouble = true; }
+  
+  let isCrit = false;
+  if (Math.random() < getEffectiveCritChance()) { power = Math.floor(power * getEffectiveCritMulti()); isCrit = true; }
+  
+  state.balance += power;
+  state.totalTaps += 1;
+  state.sessionTaps += 1;
+  state.sessionEarned += power;
+  state.energy = Math.max(0, state.energy - 1);
+  
+  let floatClass = '';
+  let floatPrefix = '';
+  if (isCrit) { floatClass = 'crit'; floatPrefix = '💥 '; }
+  else if (isDouble) { floatClass = 'double'; floatPrefix = 'x2 '; }
+  
+  spawnFloat(x, y, floatPrefix + '+' + formatNum(power), floatClass);
+  if (state.settings.particles) { spawnRipple(x, y); spawnSparkles(x, y, isCrit); }
+  
+  hippoEl.classList.remove('tapped');
+  void hippoEl.offsetWidth;
+  hippoEl.classList.add('tapped');
+  
+  const balEl = document.getElementById('balance');
+  balEl.classList.remove('pulse');
+  void balEl.offsetWidth;
+  balEl.classList.add('pulse');
+  
+  if (state.settings.haptic && tg?.HapticFeedback) {
+    tg.HapticFeedback.impactOccurred(isCrit ? 'heavy' : 'light');
+  }
+  
+  updateUI();
+  checkAchievements();
+  checkTaskProgress();
+}
+
+function spawnFloat(x, y, text, cls = '') {
+  if (!state.settings.particles) return;
+  const el = document.createElement('div');
+  el.className = 'tap-float ' + cls;
+  el.textContent = text;
+  el.style.left = (x - 30) + 'px';
+  el.style.top = (y - 30) + 'px';
+  tapArea.appendChild(el);
+  setTimeout(() => el.remove(), cls === 'crit' ? 1200 : 1000);
+}
+
+function spawnRipple(x, y) {
+  const el = document.createElement('div');
+  el.className = 'ripple';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  tapArea.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+function spawnSparkles(x, y, isCrit) {
+  const count = isCrit ? 12 : 6;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'sparkle';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = (isCrit ? 70 : 40) + Math.random() * 30;
+    el.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+    el.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+    const colors = isCrit ? ['#fbbf24', '#f59e0b', '#fde047', '#fff'] : ['#fbbf24', '#ec4899', '#a855f7', '#22d3ee', '#4ade80'];
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    tapArea.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
+}
+
+tapArea.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const rect = tapArea.getBoundingClientRect();
+  for (const touch of e.changedTouches) {
+    if (activeTouches.has(touch.identifier)) continue;
+    activeTouches.add(touch.identifier);
+    handleTap(touch.clientX - rect.left, touch.clientY - rect.top);
+  }
+}, { passive: false });
+
+tapArea.addEventListener('touchend', (e) => { for (const touch of e.changedTouches) activeTouches.delete(touch.identifier); });
+tapArea.addEventListener('touchcancel', (e) => { for (const touch of e.changedTouches) activeTouches.delete(touch.identifier); });
+tapArea.addEventListener('mousedown', (e) => {
+  const rect = tapArea.getBoundingClientRect();
+  handleTap(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+// ============ ENERGY REGEN ============
+setInterval(() => {
+  const maxE = getEffectiveMaxEnergy();
+  if (state.energy < maxE) {
+    state.energy = Math.min(maxE, state.energy + getEffectiveEnergyRegen());
+    updateEnergyUI();
+  }
+}, 1000);
+
+setInterval(() => {
+  const income = getPassiveIncome();
+  if (income > 0) state.balance += income / 3600;
+  const autoTap = getEffectiveAutoTap();
+  if (autoTap > 0 && state.energy > 0) {
+    const autoPower = getEffectiveTapPower() * autoTap / 10;
+    state.balance += autoPower;
+    state.totalTaps += Math.floor(autoTap);
+    state.energy = Math.max(0, state.energy - autoTap / 10);
+  }
+  updateUI();
+}, 1000);
+
+setInterval(saveState, 5000);
+
+// ============ UI UPDATE ============
+function updateUI() {
+  document.getElementById('balance').textContent = formatNum(state.balance);
+  document.getElementById('per-tap').textContent = formatNum(getEffectiveTapPower());
+  document.getElementById('watermelons').textContent = state.watermelons;
+  
+  const lvl = getLevel();
+  const league = getLeague();
+  document.getElementById('header-level').textContent = lvl.name;
+  document.getElementById('header-lvl-badge').textContent = lvl.lvl;
+  document.getElementById('header-league').textContent = `${league.emoji} ${league.name}`;
+  document.getElementById('header-league').style.color = league.color;
+  document.getElementById('header-name').textContent = state.name;
+  document.getElementById('header-avatar').textContent = state.name.charAt(0).toUpperCase();
+  
+  const next = getNextLevel();
+  const progress = getLevelProgress();
+  document.getElementById('lp-label').textContent = `Ур. ${lvl.lvl}`;
+  document.getElementById('lp-fill').style.width = (progress * 100) + '%';
+  if (next) document.getElementById('lp-next').textContent = `${formatNum(state.totalTaps)}/${formatNum(next.req)}`;
+  else document.getElementById('lp-next').textContent = 'MAX';
+  
+  const passive = getPassiveIncome();
+  const passiveBar = document.getElementById('passive-income-bar');
+  if (passive > 0) {
+    passiveBar.style.display = 'flex';
+    document.getElementById('passive-income-value').textContent = '+' + formatNum(passive) + '/час';
+  } else passiveBar.style.display = 'none';
+  
+  const dailyBadge = document.getElementById('daily-badge');
+  if (dailyBadge) dailyBadge.style.display = canClaimDaily() ? 'block' : 'none';
+  
+  updateMinigameButton();
+  updateEnergyUI();
+  saveState();
+}
+
+function updateEnergyUI() {
+  const maxE = getEffectiveMaxEnergy();
+  document.getElementById('energy-current').textContent = Math.floor(state.energy);
+  document.getElementById('energy-max').textContent = maxE;
+  const pct = (state.energy / maxE) * 100;
+  document.getElementById('energy-fill').style.width = pct + '%';
+}
+
+// ============ NAVIGATION ============
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+  
+  if (name === 'shop') renderShop();
+  if (name === 'tasks') renderTasks();
+  if (name === 'leagues') renderLeagues();
+  if (name === 'friends') renderFriends();
+  if (name === 'profile') renderProfile();
+  if (name === 'settings') renderSettings();
+  if (name === 'leaderboard') renderLeaderboard();
+  
+  if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+}
+
+function cloneNav(targetId, activePage) {
+  const nav = document.getElementById('bottom-nav');
+  const target = document.getElementById(targetId);
+  if (nav && target) {
+    target.innerHTML = nav.innerHTML;
+    target.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.page === activePage);
+      b.addEventListener('click', () => showPage(b.dataset.page));
+    });
+  }
+}
+
+// ============ SHOP PAGE ============
+let currentShopTab = 'all';
+
+function renderShop() {
+  const scroll = document.getElementById('shop-scroll');
+  const counts = { all: 0 };
+  for (const item of Object.values(ITEMS)) {
+    counts.all++;
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  }
+  
+  const filteredItems = currentShopTab === 'all' ? Object.values(ITEMS) : Object.values(ITEMS).filter(i => i.category === currentShopTab);
+  const rarityOrder = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4, exclusive: 5 };
+  filteredItems.sort((a, b) => {
+    const aOwned = state.inventory.includes(a.id);
+    const bOwned = state.inventory.includes(b.id);
+    if (aOwned !== bOwned) return bOwned - aOwned;
+    return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+  });
+  
+  scroll.innerHTML = `
+    <div class="page-subtitle">Собирай шмотки и получай бонусы! 🎁</div>
+    <div class="shop-tabs">
+      ${CATEGORIES.map(cat => `<button class="shop-tab ${currentShopTab === cat.id ? 'active' : ''}" data-cat="${cat.id}">${cat.emoji} ${cat.name}<span class="count">${counts[cat.id] || 0}</span></button>`).join('')}
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(236,72,153,0.1));border:1px solid rgba(168,85,247,0.3);border-radius:14px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🎒 Твой гардероб</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:12px;"><span style="color:var(--accent2);font-weight:800;">${state.inventory.length}</span> <span style="color:var(--text2);">предметов</span></div>
+        <div style="font-size:12px;"><span style="color:var(--green);font-weight:800;">${Object.values(state.equipped).filter(x => x).length}/6</span> <span style="color:var(--text2);">экипировано</span></div>
+      </div>
+    </div>
+    <div class="section-title">🛍️ Предметы (${filteredItems.length})</div>
+    ${filteredItems.map(item => renderItemCard(item)).join('')}
+    <div class="section-title">🍉 Арбузики · Telegram Stars</div>
+    ${WATERMELON_PACKS.map(p => `
+      <div class="card">
+        <div class="card-icon" style="background:linear-gradient(135deg,#22c55e,#16a34a);">🍉</div>
+        <div class="card-info">
+          <div class="card-name">${p.name} ${p.save ? `<span style="color:var(--green);font-size:10px;">· -${p.save}</span>` : ''}</div>
+          <div class="card-desc">Получишь: <b style="color:var(--green);">${p.amount} 🍉</b></div>
+        </div>
+        <button class="card-action watermelon" data-sku="${p.sku}">⭐ ${p.stars}</button>
+      </div>
+    `).join('')}
+    <div class="modal-note" style="margin-top:8px;">💫 Оплата через Telegram Stars. Безопасно и быстро!</div>
+  `;
+  
+  // Attach event listeners
+  scroll.querySelectorAll('.shop-tab').forEach(btn => {
+    btn.addEventListener('click', () => { currentShopTab = btn.dataset.cat; renderShop(); });
+  });
+  scroll.querySelectorAll('[data-sku]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sku = btn.dataset.sku;
+      const pack = WATERMELON_PACKS.find(p => p.sku === sku);
+      if (pack) buyWatermelonStars(pack.sku, pack.stars, pack.amount);
     });
   });
+  scroll.querySelectorAll('[data-buy-item]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      buyItem(btn.dataset.buyItem);
+    });
+  });
+  scroll.querySelectorAll('[data-equip-item]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      equipItem(btn.dataset.equipItem);
+    });
+  });
+  scroll.querySelectorAll('[data-unequip-item]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      unequipItem(btn.dataset.unequipItem);
+    });
+  });
+  scroll.querySelectorAll('[data-claim-ach]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      claimAchievementItem(btn.dataset.claimAch);
+    });
+  });
+  scroll.querySelectorAll('[data-show-ach]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAchievementReq(btn.dataset.showAch);
+    });
+  });
+}
+
+function renderItemCard(item) {
+  const owned = state.inventory.includes(item.id);
+  const equipped = Object.values(state.equipped).includes(item.id);
+  const isAchievement = item.priceType === 'achievement';
+  const achievementUnlocked = isAchievement && state.achievements.includes(item.achievementId);
+  
+  let actionHtml = '';
+  if (owned) {
+    if (equipped) actionHtml = `<button class="card-action equipped" data-unequip-item="${item.id}">✓ Снять</button>`;
+    else actionHtml = `<button class="card-action owned" data-equip-item="${item.id}">Надеть</button>`;
+  } else if (isAchievement) {
+    actionHtml = `<button class="card-action coins" ${achievementUnlocked ? '' : 'disabled'} data-${achievementUnlocked ? 'claim-ach' : 'show-ach'}="${item.achievementId}">${achievementUnlocked ? '🔓 Забрать' : '🔒 Достижение'}</button>`;
+  } else {
+    const priceLabel = item.priceType === 'coins' ? `${formatNum(item.price)} 🪙` : `${item.price} 🍉`;
+    const btnClass = item.priceType === 'coins' ? 'coins' : 'watermelon';
+    actionHtml = `<button class="card-action ${btnClass}" data-buy-item="${item.id}">${priceLabel}</button>`;
+  }
+  
+  const bonusTags = item.bonuses.map(b => {
+    const unit = BONUS_UNITS[b.type] || '';
+    return `<span class="bonus-tag ${BONUS_CLASS[b.type]}">+${b.value}${unit} ${BONUS_NAMES[b.type]}</span>`;
+  }).join('');
+  
+  return `
+    <div class="card" data-item-detail="${item.id}" style="${equipped ? 'border-color:rgba(168,85,247,0.5);background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(255,255,255,0.02));' : ''}">
+      <div class="card-icon" style="background:${item.color === 'rainbow' ? 'linear-gradient(135deg,#ef4444,#a855f7)' : `linear-gradient(135deg,${item.color || '#6b7280'},${lighten(item.color || '#6b7280', 20)})`};font-size:22px;">
+        ${item.emoji}
+        <span class="rarity-badge rarity-${item.rarity}">${RARITY_NAMES[item.rarity].charAt(0)}</span>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${item.name} ${equipped ? '<span style="color:var(--purple);font-size:10px;">· ЭКИП</span>' : ''}</div>
+        <div style="margin-top:3px;">${bonusTags}</div>
+      </div>
+      ${actionHtml}
+    </div>
+  `;
+}
+
+// ============ ITEM DETAIL ============
+function openItemDetail(itemId) {
+  const item = ITEMS[itemId];
+  if (!item) return;
+  const owned = state.inventory.includes(itemId);
+  const equipped = Object.values(state.equipped).includes(itemId);
+  const isAchievement = item.priceType === 'achievement';
+  const achievementUnlocked = isAchievement && state.achievements.includes(item.achievementId);
+  
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  
+  const bonusRows = item.bonuses.map(b => {
+    const unit = BONUS_UNITS[b.type] || '';
+    return `<div class="bonus-row"><span class="label">${BONUS_NAMES[b.type]}</span><span class="value">+${b.value}${unit}</span></div>`;
+  }).join('');
+  
+  let actionBtn = '';
+  if (owned) {
+    if (equipped) actionBtn = `<button class="modal-btn secondary" id="btn-unequip-${itemId}">🚫 Снять предмет</button>`;
+    else actionBtn = `<button class="modal-btn equip" id="btn-equip-${itemId}">✨ Надеть предмет</button>`;
+  } else if (isAchievement) {
+    if (achievementUnlocked) actionBtn = `<button class="modal-btn primary" id="btn-claim-${itemId}">🎁 Забрать награду</button>`;
+    else {
+      const ach = ACHIEVEMENTS_DEF.find(a => a.id === item.achievementId);
+      actionBtn = `<button class="modal-btn secondary" disabled>🔒 ${ach ? ach.desc : 'Достижение не разблокировано'}</button>`;
+    }
+  } else {
+    const priceLabel = item.priceType === 'coins' ? `Купить за ${formatNum(item.price)} 🪙` : `Купить за ${item.price} 🍉`;
+    actionBtn = `<button class="modal-btn ${item.priceType === 'coins' ? 'primary' : 'stars'}" id="btn-buy-${itemId}">${priceLabel}</button>`;
+  }
+  
+  content.innerHTML = `
+    <div class="item-preview">${item.emoji}</div>
+    <div class="modal-title">${item.name}</div>
+    <div style="text-align:center;margin-bottom:10px;"><span class="rarity-badge rarity-${item.rarity}" style="position:static;display:inline-block;">${RARITY_NAMES[item.rarity]}</span></div>
+    <div class="modal-desc">${item.desc}</div>
+    ${item.bonuses.length > 0 ? `<div class="bonus-list"><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;">✨ Бонусы предмета</div>${bonusRows}</div>` : ''}
+    ${owned ? `<div class="modal-note">${equipped ? '✅ Предмет экипирован и даёт все бонусы' : '📦 Предмет в инвентаре. Надень его!'}</div>` : ''}
+    ${isAchievement && !owned ? `<div class="modal-note">🏆 Эксклюзивный предмет. Разблокируй достижение чтобы получить!</div>` : ''}
+    ${actionBtn}
+    <button class="modal-btn secondary" id="btn-close-modal">Закрыть</button>
+  `;
+  modal.classList.add('show');
+  
+  // Attach listeners
+  document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+  if (owned) {
+    if (equipped) document.getElementById(`btn-unequip-${itemId}`).addEventListener('click', () => { unequipItem(itemId); closeModal(); });
+    else document.getElementById(`btn-equip-${itemId}`).addEventListener('click', () => { equipItem(itemId); closeModal(); });
+  } else if (isAchievement && achievementUnlocked) {
+    document.getElementById(`btn-claim-${itemId}`).addEventListener('click', () => claimAchievementItem(itemId));
+  } else if (!isAchievement) {
+    document.getElementById(`btn-buy-${itemId}`).addEventListener('click', () => buyItem(itemId));
+  }
+}
+
+function showAchievementReq(achievementId) {
+  const ach = ACHIEVEMENTS_DEF.find(a => a.id === achievementId);
+  if (!ach) return;
+  showToast(`🔒 Нужно: ${ach.desc}`);
+}
+
+function claimAchievementItem(itemId) {
+  const item = ITEMS[itemId];
+  if (!item || item.priceType !== 'achievement') return;
+  if (!state.achievements.includes(item.achievementId)) { showToast('❌ Достижение не разблокировано', 'error'); return; }
+  if (state.inventory.includes(itemId)) { showToast('❌ Уже получено', 'error'); return; }
+  state.inventory.push(itemId);
+  showToast(`🎉 Получено: ${item.name}!`);
+  showFloatingReward(`${item.emoji} ${item.name}`);
+  closeModal();
+  renderShop();
+  checkAchievements();
+}
+
+function buyItem(itemId) {
+  const item = ITEMS[itemId];
+  if (!item) return;
+  if (state.inventory.includes(itemId)) { showToast('❌ Уже куплено', 'error'); return; }
+  if (item.priceType === 'achievement') { showToast('❌ Только за достижение', 'error'); return; }
+  
+  if (item.priceType === 'coins') {
+    if (state.balance < item.price) { showToast('❌ Недостаточно монет', 'error'); return; }
+    state.balance -= item.price;
+    state.inventory.push(itemId);
+    showToast(`🎉 Куплено: ${item.name}!`);
+    showFloatingReward(`${item.emoji} ${item.name}`);
+    renderShop();
+    checkAchievements();
+    updateUI();
+  } else if (item.priceType === 'watermelons') {
+    if (state.watermelons < item.price) { showToast(`❌ Нужно ${item.price} 🍉`, 'error'); return; }
+    state.watermelons -= item.price;
+    state.inventory.push(itemId);
+    showToast(`🎉 Куплено: ${item.name}!`);
+    showFloatingReward(`${item.emoji} ${item.name}`);
+    renderShop();
+    checkAchievements();
+    updateUI();
+  }
+}
+
+function equipItem(itemId) {
+  const item = ITEMS[itemId];
+  if (!item || !state.inventory.includes(itemId)) { showToast('❌ Сначала купи', 'error'); return; }
+  state.equipped[item.category] = itemId;
+  renderHippo();
+  renderShop();
+  updateUI();
+  showToast(`✨ ${item.name} экипирован!`);
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+
+function unequipItem(itemId) {
+  const item = ITEMS[itemId];
+  if (!item) return;
+  const slot = item.category;
+  state.equipped[slot] = slot === 'skin' ? 'skin_default' : null;
+  renderHippo();
+  renderShop();
+  updateUI();
+  showToast(`🚫 ${item.name} снят`);
+}
+
+// ============ TELEGRAM STARS PAYMENT ============
+function buyWatermelonStars(sku, stars, amount) {
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <div class="modal-title">⭐ Оплата Stars</div>
+    <div class="modal-desc">Покупка: <b style="color:var(--green);">${amount} 🍉</b><br>Цена: <b style="color:var(--accent);">${stars} ⭐</b></div>
+    <div class="modal-note">💫 В реальном Telegram откроется нативное окно оплаты Stars.<br>Для демо — нажмите "Оплатить" для тестирования.</div>
+    <button class="modal-btn stars" id="btn-stars-pay">⭐ Оплатить ${stars} Stars</button>
+    <button class="modal-btn secondary" id="btn-stars-cancel">Отмена</button>
+  `;
+  modal.classList.add('show');
+  document.getElementById('btn-stars-pay').addEventListener('click', () => completeStarsPayment(amount));
+  document.getElementById('btn-stars-cancel').addEventListener('click', closeModal);
+}
+
+function completeStarsPayment(amount) {
+  closeModal();
+  state.watermelons += amount;
+  showToast(`🍉 +${amount} арбузиков!`);
+  showFloatingReward(`🍉 +${amount}`);
+  updateUI();
+  if (document.getElementById('page-shop').classList.contains('active')) renderShop();
+  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+
+// ============ TASKS ============
+let currentTaskFilter = 'all';
+
+function getTaskProgress(task) {
+  switch(task.action) {
+    case 'tap1000': return Math.min(state.totalTaps, 1000);
+    case 'tap10000': return Math.min(state.totalTaps, 10000);
+    case 'tap100000': return Math.min(state.totalTaps, 100000);
+    case 'level5': return Math.min(getLevel().lvl, 5);
+    case 'level10': return Math.min(getLevel().lvl, 10);
+    case 'minigame1': return state.lastMinigame > 0 ? 1 : 0;
+    case 'chest3': return Math.min(state.chestsOpened, 3);
+    case 'invite1': return Math.min(state.friends, 1);
+    case 'invite3': return Math.min(state.friends, 3);
+    case 'invite10': return Math.min(state.friends, 10);
+    default: return 0;
+  }
+}
+
+function renderTasks() {
+  const scroll = document.getElementById('tasks-scroll');
+  const filtered = currentTaskFilter === 'all' ? TASKS : TASKS.filter(t => t.category === currentTaskFilter);
+  
+  scroll.innerHTML = `
+    <div class="page-subtitle">Выполняй задания и получай награды!</div>
+    <div class="task-filters">
+      ${TASK_CATEGORIES.map(cat => `<button class="task-filter ${currentTaskFilter === cat.id ? 'active' : ''}" data-filter="${cat.id}">${cat.emoji} ${cat.name}</button>`).join('')}
+    </div>
+    ${filtered.map(renderTaskCard).join('')}
+  `;
+  
+  scroll.querySelectorAll('.task-filter').forEach(btn => {
+    btn.addEventListener('click', () => { currentTaskFilter = btn.dataset.filter; renderTasks(); });
+  });
+  scroll.querySelectorAll('[data-start-task]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); startSocialTask(btn.dataset.startTask); });
+  });
+  scroll.querySelectorAll('[data-claim-task]').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); claimTask(btn.dataset.claimTask); });
+  });
+}
+
+function renderTaskCard(task) {
+  const done = state.tasks[task.id];
+  const progress = getTaskProgress(task);
+  const canClaim = progress >= task.target && !done;
+  const isSocial = ['subscribe', 'chat', 'twitter', 'youtube', 'tiktok'].includes(task.action);
+  const pct = Math.min(100, (progress / task.target) * 100);
+  
+  return `
+    <div class="card">
+      <div class="card-icon" style="background:${done ? 'linear-gradient(135deg,rgba(74,222,128,0.2),rgba(74,222,128,0.1))' : 'linear-gradient(135deg,var(--card2),var(--card))'};">${task.icon}</div>
+      <div class="card-info">
+        <div class="card-name">${task.name}</div>
+        <div class="card-desc">${task.desc}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--accent2);font-weight:700;">+${formatNum(task.rewardCoins)} 🪙</span>
+          ${task.rewardWm > 0 ? `<span style="font-size:10px;color:var(--green);font-weight:700;">+${task.rewardWm} 🍉</span>` : ''}
+        </div>
+        ${!isSocial && !done ? `<div class="task-progress"><div class="task-progress-fill" style="width:${pct}%"></div></div><div style="font-size:10px;color:var(--text2);margin-top:3px;">${progress}/${task.target}</div>` : ''}
+      </div>
+      <button class="card-action ${done ? 'done' : (canClaim ? '' : 'coins')}" ${done || (!canClaim && !isSocial) ? 'disabled' : ''} ${isSocial && !done ? `data-start-task="${task.id}"` : (canClaim ? `data-claim-task="${task.id}"` : '')}>
+        ${done ? '✓' : (canClaim ? 'Забрать' : (isSocial ? 'Начать' : `${Math.floor(pct)}%`))}
+      </button>
+    </div>
+  `;
+}
+
+function startSocialTask(id) {
+  const task = TASKS.find(t => t.id === id);
+  if (!task || state.tasks[id]) return;
+  
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <div class="modal-title">${task.icon} ${task.name}</div>
+    <div class="modal-desc">${task.desc}</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;margin-bottom:14px;">
+      <div style="font-size:40px;margin-bottom:8px;">${task.icon}</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Награда</div>
+      <div style="font-size:16px;font-weight:900;color:var(--accent);">+${formatNum(task.rewardCoins)} 🪙</div>
+      ${task.rewardWm > 0 ? `<div style="font-size:14px;font-weight:900;color:var(--green);">+${task.rewardWm} 🍉</div>` : ''}
+    </div>
+    <button class="modal-btn primary" id="btn-open-link-${id}">🔗 Перейти</button>
+    <button class="modal-btn primary" id="btn-verify-${id}" style="background:linear-gradient(135deg,var(--green),#16a34a);">✓ Я выполнил</button>
+    <button class="modal-btn secondary" id="btn-cancel-task">Отмена</button>
+  `;
+  modal.classList.add('show');
+  document.getElementById(`btn-open-link-${id}`).addEventListener('click', () => openTaskLink(task.action));
+  document.getElementById(`btn-verify-${id}`).addEventListener('click', () => { claimTask(id); closeModal(); });
+  document.getElementById('btn-cancel-task').addEventListener('click', closeModal);
+}
+
+function openTaskLink(action) {
+  const links = { subscribe: 'https://t.me/hippotap', chat: 'https://t.me/hippotap_chat', twitter: 'https://twitter.com/hippotap', youtube: 'https://youtube.com/@hippotap', tiktok: 'https://tiktok.com/@hippotap' };
+  if (tg?.openLink) tg.openLink(links[action]);
+  else window.open(links[action], '_blank');
+}
+
+function claimTask(id) {
+  const task = TASKS.find(t => t.id === id);
+  if (!task || state.tasks[id]) return;
+  const progress = getTaskProgress(task);
+  const isSocial = ['subscribe', 'chat', 'twitter', 'youtube', 'tiktok'].includes(task.action);
+  if (!isSocial && progress < task.target) { showToast('❌ Условие не выполнено', 'error'); return; }
+  
+  state.tasks[id] = Date.now();
+  state.balance += task.rewardCoins;
+  state.watermelons += task.rewardWm;
+  showToast(`🎉 +${formatNum(task.rewardCoins)} 🪙${task.rewardWm > 0 ? ` +${task.rewardWm} 🍉` : ''}`);
+  showFloatingReward(`+${formatNum(task.rewardCoins)} 🪙`);
+  updateUI();
+  renderTasks();
+  checkAchievements();
+}
+
+function checkTaskProgress() {
+  if (document.getElementById('page-tasks')?.classList.contains('active')) renderTasks();
+}
+
+// ============ LEAGUES ============
+function renderLeagues() {
+  const scroll = document.getElementById('leagues-scroll');
+  const currentLeague = getLeague();
+  const nextLeague = getNextLeague();
+  
+  scroll.innerHTML = `
+    <div class="page-subtitle">Прокачивай лигу и получай бонусы к тапу!</div>
+    <div style="background:linear-gradient(135deg,rgba(255,149,0,0.15),rgba(255,149,0,0.05));border:1px solid rgba(255,149,0,0.3);border-radius:14px;padding:14px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:6px;">${currentLeague.emoji}</div>
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;">Твоя лига</div>
+      <div style="font-size:20px;font-weight:900;color:${currentLeague.color};margin:4px 0;">${currentLeague.name}</div>
+      <div style="font-size:12px;color:var(--green);font-weight:700;">+${currentLeague.bonusPct}% к силе тапа</div>
+      ${nextLeague ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);">До ${nextLeague.name}: <b style="color:var(--accent2);">${formatNum(nextLeague.minBalance - state.balance)}</b> монет</div>` : '<div style="margin-top:10px;font-size:11px;color:var(--green);">🏆 Максимальная лига!</div>'}
+    </div>
+    <div class="section-title">🏆 Все лиги</div>
+    ${LEAGUES.slice().reverse().map(league => {
+      const isCurrent = league.id === currentLeague.id;
+      const isUnlocked = state.balance >= league.minBalance;
+      return `
+        <div class="league-card ${isCurrent ? 'current' : ''} ${!isUnlocked ? 'locked' : ''}">
+          <div class="league-icon" style="background:linear-gradient(135deg,${league.color}33,${league.color}11);font-size:28px;">${league.emoji}</div>
+          <div class="league-info">
+            <div class="league-name" style="color:${league.color};">${league.name} ${isCurrent ? '← Ты здесь' : ''}</div>
+            <div class="league-req">${league.minBalance === 0 ? 'Стартовая лига' : `От ${formatNum(league.minBalance)} монет`}</div>
+            <div class="league-bonus">+${league.bonusPct}% к силе тапа</div>
+          </div>
+          <div style="font-size:20px;">${isUnlocked ? '✅' : '🔒'}</div>
+        </div>
+      `;
+    }).join('')}
+    <div style="margin-top:16px;"><button class="card-action" style="width:100%;justify-content:center;padding:14px;" id="btn-go-lb">🏆 Топ-100 игроков</button></div>
+  `;
+  
+  document.getElementById('btn-go-lb').addEventListener('click', () => showPage('leaderboard'));
+}
+
+// ============ LEADERBOARD ============
+function renderLeaderboard() {
+  const scroll = document.getElementById('leaderboard-scroll');
+  const fakeUsers = [
+    { name: 'CryptoKing', taps: 5200000, lvl: 10, league: 'Legend' },
+    { name: 'HippoMaster', taps: 3800000, lvl: 10, league: 'Legend' },
+    { name: 'TapGod', taps: 2500000, lvl: 9, league: 'Master' },
+    { name: 'WatermelonLover', taps: 1800000, lvl: 9, league: 'Master' },
+    { name: 'DiamondHands', taps: 1200000, lvl: 8, league: 'Diamond' },
+    { name: 'NotcoinFan', taps: 850000, lvl: 8, league: 'Diamond' },
+    { name: 'MoonBoy', taps: 520000, lvl: 7, league: 'Platinum' },
+    { name: 'TapMachine', taps: 310000, lvl: 7, league: 'Gold' },
+    { name: 'HippoGang', taps: 180000, lvl: 6, league: 'Gold' },
+    { name: 'CryptoHippo', taps: 95000, lvl: 6, league: 'Silver' }
+  ];
+  const allUsers = [...fakeUsers, { name: state.name + ' (ты)', taps: state.totalTaps, lvl: getLevel().lvl, league: getLeague().name, isMe: true }].sort((a, b) => b.taps - a.taps);
+  
+  scroll.innerHTML = `<div class="page-subtitle">Топ-100 игроков HippoTap</div>${allUsers.map((u, i) => {
+    const rank = i + 1;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+    return `<div class="lb-item ${u.isMe?'me':''}"><div class="lb-rank ${rankClass}">${rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}</div><div class="lb-info"><div class="lb-name">${u.name}</div><div class="lb-level">Уровень ${u.lvl} · ${u.league}</div></div><div class="lb-score">${formatNum(u.taps)}</div></div>`;
+  }).join('')}`;
+}
+
+// ============ FRIENDS ============
+function renderFriends() {
+  const scroll = document.getElementById('friends-scroll');
+  const inviteLink = `https://t.me/hippotap_bot?start=ref_${state.id}`;
+  document.getElementById('friends-count').textContent = state.friends;
+  
+  scroll.innerHTML = `
+    <div class="friend-bonus">
+      <div class="friend-bonus-title">🎁 Бонус за друга</div>
+      <div class="friend-bonus-desc">Приглашай друзей и получай бонусы!</div>
+      <div class="friend-bonus-amount">+5,000 🪙</div>
+      <div class="friend-bonus-desc">+10% от их тапов навсегда</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--purple);">💎 Premium друг: +25,000 🪙</div>
+    </div>
+    <div class="section-title">🔗 Твоя ссылка</div>
+    <div class="invite-link-box">${inviteLink}</div>
+    <button class="card-action" style="width:100%;justify-content:center;padding:14px;" id="btn-copy-link">📋 Скопировать ссылку</button>
+    <button class="card-action coins" style="width:100%;justify-content:center;padding:14px;margin-top:8px;" id="btn-share-link">📤 Поделиться</button>
+    <div class="section-title">👥 Твои друзья (${state.friends})</div>
+    ${state.friends === 0 ? `<div style="text-align:center;padding:30px 20px;color:var(--text2);"><div style="font-size:60px;margin-bottom:10px;">👥</div><div style="font-size:14px;font-weight:600;margin-bottom:4px;">Пока нет друзей</div><div style="font-size:12px;">Пригласи друзей и получай бонусы!</div></div>` : `${Array.from({length: Math.min(state.friends, 10)}, (_, i) => {
+      const names = ['Алекс','Максим','Даша','Иван','Оля','Никита','Аня','Сергей','Катя','Паша'];
+      const earned = Math.floor(Math.random() * 50000) + 1000;
+      return `<div class="card"><div class="card-icon" style="background:linear-gradient(135deg,var(--accent),var(--pink));">${names[i % names.length].charAt(0)}</div><div class="card-info"><div class="card-name">${names[i % names.length]} ${i === 0 && state.friendsPremium > 0 ? '💎' : ''}</div><div class="card-desc">Присоединился недавно</div></div><div style="font-size:12px;color:var(--green);font-weight:700;">+${formatNum(earned)}</div></div>`;
+    }).join('')}`}
+  `;
+  
+  document.getElementById('btn-copy-link').addEventListener('click', copyInviteLink);
+  document.getElementById('btn-share-link').addEventListener('click', shareInviteLink);
+}
+
+function copyInviteLink() {
+  const link = `https://t.me/hippotap_bot?start=ref_${state.id}`;
+  navigator.clipboard?.writeText(link);
+  showToast('📋 Ссылка скопирована!');
+}
+
+function shareInviteLink() {
+  const link = `https://t.me/hippotap_bot?start=ref_${state.id}`;
+  const text = '🦛 Тапай бегемота и зарабатывай! HippoTap — новая тапалка 🍉';
+  if (tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+  else if (navigator.share) navigator.share({ title: 'HippoTap', text, url: link });
+  else { navigator.clipboard?.writeText(link); showToast('📋 Ссылка скопирована!'); }
+}
+
+// ============ PROFILE ============
+function renderProfile() {
+  const scroll = document.getElementById('profile-scroll');
+  const lvl = getLevel();
+  const league = getLeague();
+  const eqBonuses = getEquipmentBonuses();
+  
+  scroll.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-avatar">${state.name.charAt(0).toUpperCase()}</div>
+      <div class="profile-name">${state.name}</div>
+      <div class="profile-id">ID: #${state.id}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+        <span class="level-badge">${lvl.name}</span>
+        <span class="league-badge" style="color:${league.color};">${league.emoji} ${league.name}</span>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${formatNum(state.totalTaps)}</div><div class="stat-label">Всего тапов</div></div>
+      <div class="stat-card"><div class="stat-value">${formatNum(state.balance)}</div><div class="stat-label">Баланс</div></div>
+      <div class="stat-card"><div class="stat-value">${state.watermelons}</div><div class="stat-label">🍉 Арбузиков</div></div>
+      <div class="stat-card"><div class="stat-value">${state.inventory.length}</div><div class="stat-label">👗 Предметов</div></div>
+      <div class="stat-card"><div class="stat-value">${lvl.lvl}</div><div class="stat-label">Уровень</div></div>
+      <div class="stat-card"><div class="stat-value">${formatNum(getPassiveIncome())}</div><div class="stat-label">💰 Доход/час</div></div>
+      <div class="stat-card"><div class="stat-value">${state.minigameBestScore}</div><div class="stat-label">🎯 Рекорд тира</div></div>
+      <div class="stat-card"><div class="stat-value">${state.friends}</div><div class="stat-label">👥 Друзей</div></div>
+    </div>
+    <div class="section-title">✨ Активная экипировка</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+      ${['skin', 'hat', 'glasses', 'aura', 'wings', 'tool'].map(slot => {
+        const itemId = state.equipped[slot];
+        const item = itemId ? ITEMS[itemId] : null;
+        const slotNames = { skin: 'Скин', hat: 'Шляпа', glasses: 'Очки', aura: 'Аура', wings: 'Крылья', tool: 'Оружие' };
+        const slotEmojis = { skin: '🎨', hat: '🎩', glasses: '👓', aura: '✨', wings: '🪽', tool: '⚔️' };
+        return `<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;" data-goto-shop><div style="font-size:24px;margin-bottom:4px;">${item ? item.emoji : slotEmojis[slot]}</div><div style="font-size:9px;color:var(--text2);text-transform:uppercase;">${slotNames[slot]}</div><div style="font-size:10px;font-weight:700;margin-top:2px;color:${item ? 'var(--accent2)' : 'var(--text2)'};">${item ? item.name : 'Пусто'}</div></div>`;
+      }).join('')}
+    </div>
+    <div class="section-title">📊 Бонусы от экипировки</div>
+    <div class="bonus-list">
+      ${Object.entries(eqBonuses).filter(([k,v]) => v > 0).map(([k,v]) => {
+        const unit = BONUS_UNITS[k] || '';
+        return `<div class="bonus-row"><span class="label">${BONUS_NAMES[k]}</span><span class="value">+${k === 'critChance' || k === 'doubleTap' || k === 'luck' ? Math.floor(v) : v}${unit}</span></div>`;
+      }).join('') || '<div style="text-align:center;color:var(--text2);padding:10px;font-size:12px;">Экипируй предметы для бонусов</div>'}
+    </div>
+    <div class="section-title">🏆 Достижения (${state.achievements.length}/${ACHIEVEMENTS_DEF.length})</div>
+    ${ACHIEVEMENTS_DEF.map(a => {
+      const unlocked = state.achievements.includes(a.id);
+      return `<div class="card" style="opacity:${unlocked?1:0.5}"><div class="card-icon" style="background:${unlocked?'linear-gradient(135deg,var(--accent),#ff7700)':'var(--card2)'};">${a.icon}</div><div class="card-info"><div class="card-name">${a.name}</div><div class="card-desc">${a.desc}</div></div><div style="font-size:18px;">${unlocked?'✅':'🔒'}</div></div>`;
+    }).join('')}
+  `;
+  
+  scroll.querySelectorAll('[data-goto-shop]').forEach(el => el.addEventListener('click', () => showPage('shop')));
+}
+
+// ============ SETTINGS ============
+function renderSettings() {
+  const scroll = document.getElementById('settings-scroll');
+  scroll.innerHTML = `
+    <div class="section-title">🎮 Геймплей</div>
+    <div class="setting-item" data-setting="sound"><div class="setting-left"><div class="setting-icon">🔊</div><div class="setting-label">Звук тапов</div></div><div class="toggle ${state.settings.sound?'on':''}"></div></div>
+    <div class="setting-item" data-setting="vibro"><div class="setting-left"><div class="setting-icon">📳</div><div class="setting-label">Вибрация</div></div><div class="toggle ${state.settings.vibro?'on':''}"></div></div>
+    <div class="setting-item" data-setting="particles"><div class="setting-left"><div class="setting-icon">✨</div><div class="setting-label">Эффекты частиц</div></div><div class="toggle ${state.settings.particles?'on':''}"></div></div>
+    <div class="setting-item" data-setting="haptic"><div class="setting-left"><div class="setting-icon">💫</div><div class="setting-label">Haptic feedback</div></div><div class="toggle ${state.settings.haptic?'on':''}"></div></div>
+    <div class="section-title">🔔 Уведомления</div>
+    <div class="setting-item" data-setting="push"><div class="setting-left"><div class="setting-icon">🔔</div><div><div class="setting-label">Push-уведомления</div><div class="setting-value">Энергия, награды, друзья</div></div></div><div class="toggle ${state.settings.push?'on':''}"></div></div>
+    <div class="section-title">📊 Статистика сессии</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${formatNum(state.sessionTaps)}</div><div class="stat-label">Тапов сегодня</div></div>
+      <div class="stat-card"><div class="stat-value">${formatNum(state.sessionEarned)}</div><div class="stat-label">Заработано</div></div>
+    </div>
+    <div class="section-title">🎁 Бонусы</div>
+    <div class="setting-item" id="btn-open-daily"><div class="setting-left"><div class="setting-icon">📅</div><div><div class="setting-label">Ежедневная награда</div><div class="setting-value">Серия: ${state.dailyStreak} дней</div></div></div><div style="color:var(--accent2);">›</div></div>
+    <div class="setting-item" id="btn-open-chests"><div class="setting-left"><div class="setting-icon">📦</div><div><div class="setting-label">Сундуки с наградами</div><div class="setting-value">Открыто: ${state.chestsOpened}</div></div></div><div style="color:var(--accent2);">›</div></div>
+    <div class="section-title">ℹ️ О приложении</div>
+    <div class="setting-item"><div class="setting-left"><div class="setting-icon">🦛</div><div><div class="setting-label">HippoTap</div><div class="setting-value">v5.0.0 · Premium Edition</div></div></div></div>
+    <div class="setting-item" id="btn-go-lb2"><div class="setting-left"><div class="setting-icon">🏆</div><div class="setting-label">Топ игроков</div></div><div style="color:var(--accent2);">›</div></div>
+    <div class="setting-item" id="btn-reset"><div class="setting-left"><div class="setting-icon" style="background:rgba(239,68,68,0.15);">🗑️</div><div class="setting-label" style="color:var(--red);">Сбросить аккаунт</div></div></div>
+  `;
+  
+  scroll.querySelectorAll('[data-setting]').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.setting;
+      state.settings[key] = !state.settings[key];
+      updateUI();
+      renderSettings();
+      saveState();
+      if (key === 'push') showToast(state.settings.push ? '🔔 Уведомления включены' : '🔕 Уведомления выключены');
+    });
+  });
+  document.getElementById('btn-open-daily').addEventListener('click', openDaily);
+  document.getElementById('btn-open-chests').addEventListener('click', openChests);
+  document.getElementById('btn-go-lb2').addEventListener('click', () => showPage('leaderboard'));
+  document.getElementById('btn-reset').addEventListener('click', resetAccount);
+}
+
+function resetAccount() {
+  openConfirmModal('Сбросить аккаунт?', 'Весь прогресс будет потерян. Это действие нельзя отменить.', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState();
+    renderHippo();
+    updateUI();
+    showPage('home');
+    showToast('🗑️ Аккаунт сброшен');
+  });
+}
+
+// ============ DAILY REWARDS ============
+function canClaimDaily() {
+  const now = Date.now();
+  const last = state.lastDaily;
+  const dayMs = 24 * 60 * 60 * 1000;
+  return (now - last) >= dayMs;
+}
+
+function openDaily() {
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  const canClaim = canClaimDaily();
+  const currentDay = state.dailyCycleDay;
+  
+  content.innerHTML = `
+    <div class="modal-title">📅 Ежедневные награды</div>
+    <div class="modal-desc">Заходи каждый день и получай бонусы!<br>Серия: <b style="color:var(--accent);">${state.dailyStreak} дней</b></div>
+    <div class="daily-grid">
+      ${DAILY_REWARDS.map(d => {
+        const isClaimed = d.day < currentDay || (!canClaim && d.day === currentDay);
+        const isToday = d.day === currentDay && canClaim;
+        const isDay7 = d.day === 7;
+        return `<div class="daily-day ${isClaimed ? 'claimed' : ''} ${isToday ? 'today' : ''} ${isDay7 ? 'day7' : ''}">${isClaimed ? '<div class="daily-check">✓</div>' : ''}<div class="daily-num">День ${d.day}</div><div class="daily-reward">${d.emoji}</div><div class="daily-amount">${d.skinReward ? '🦛 Скин' : '+' + formatNum(d.reward)}</div></div>`;
+      }).join('')}
+    </div>
+    ${canClaim ? `<button class="modal-btn primary" id="btn-claim-daily">🎁 Забрать награду</button>` : `<div class="modal-note">Приходи завтра за новой наградой!</div><button class="modal-btn secondary" id="btn-close-daily">Закрыть</button>`}
+  `;
+  modal.classList.add('show');
+  if (canClaim) document.getElementById('btn-claim-daily').addEventListener('click', claimDaily);
+  else document.getElementById('btn-close-daily').addEventListener('click', closeModal);
+}
+
+function claimDaily() {
+  const day = state.dailyCycleDay;
+  const reward = DAILY_REWARDS[day - 1];
+  state.lastDaily = Date.now();
+  state.dailyStreak += 1;
+  
+  if (reward.skinReward) {
+    if (!state.inventory.includes(reward.skinReward)) {
+      state.inventory.push(reward.skinReward);
+      showToast(`🎉 Скин "${ITEMS[reward.skinReward].name}" разблокирован!`);
+      showFloatingReward(`🦛 ${ITEMS[reward.skinReward].name}`);
+    }
+  } else {
+    state.balance += reward.reward;
+    showToast(`🎉 +${formatNum(reward.reward)} монет!`);
+    showFloatingReward(`${reward.emoji} +${formatNum(reward.reward)}`);
+  }
+  
+  state.dailyCycleDay = (day % 7) + 1;
+  closeModal();
+  updateUI();
+  checkAchievements();
+}
+
+// ============ CHESTS ============
+function openChests() {
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <div class="modal-title">📦 Сундуки с наградами</div>
+    <div class="modal-desc">Открывай сундуки и получай случайные награды!<br>Удача: <b style="color:var(--accent);">+${Math.floor(getEffectiveLuck())}%</b></div>
+    <div class="chest-grid">
+      ${CHESTS.map(c => `<div class="chest-item" data-chest="${c.id}"><div class="chest-emoji">${c.emoji}</div><div class="chest-name">${c.name}</div><div class="chest-price">${formatNum(c.price)} 🪙</div></div>`).join('')}
+    </div>
+    <button class="modal-btn secondary" id="btn-close-chests" style="margin-top:14px;">Закрыть</button>
+  `;
+  modal.classList.add('show');
+  document.getElementById('btn-close-chests').addEventListener('click', closeModal);
+  content.querySelectorAll('[data-chest]').forEach(el => el.addEventListener('click', () => openChest(el.dataset.chest)));
+}
+
+function openChest(id) {
+  const chest = CHESTS.find(c => c.id === id);
+  if (state.balance < chest.price) { showToast('❌ Недостаточно монет', 'error'); return; }
+  state.balance -= chest.price;
+  state.chestsOpened += 1;
+  const luckMulti = 1 + getEffectiveLuck() / 100;
+  const reward = Math.floor((chest.min + Math.random() * (chest.max - chest.min)) * luckMulti);
+  state.balance += reward;
+  closeModal();
+  setTimeout(() => {
+    showToast(`${chest.emoji} +${formatNum(reward)} монет!`);
+    showFloatingReward(`${chest.emoji} +${formatNum(reward)}`);
+  }, 300);
+  updateUI();
+  checkAchievements();
+  checkTaskProgress();
+}
+
+// ============ MINI-GAME ============
+let mgState = { active: false, score: 0, timeLeft: 30, melons: [], interval: null, timerInterval: null, startTime: 0 };
+
+function getMinigameCooldown() {
+  const cd = 4 * 60 * 60 * 1000;
+  const elapsed = Date.now() - state.lastMinigame;
+  return Math.max(0, cd - elapsed);
+}
+
+function updateMinigameButton() {
+  const btn = document.getElementById('minigame-btn');
+  if (!btn) return;
+  const cd = getMinigameCooldown();
+  if (cd > 0) {
+    btn.disabled = true;
+    const h = Math.floor(cd / 3600000);
+    const m = Math.floor((cd % 3600000) / 60000);
+    btn.querySelector('span').textContent = `${h}:${m.toString().padStart(2,'0')}`;
+  } else {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Тир';
+  }
+}
+
+setInterval(updateMinigameButton, 10000);
+
+function openMinigame() {
+  if (getMinigameCooldown() > 0) { showToast('⏱ Мини-игра на кулдауне', 'error'); return; }
+  
+  const screen = document.getElementById('minigame-screen');
+  screen.classList.add('show');
+  document.getElementById('minigame-result').classList.remove('show');
+  
+  const canvas = document.getElementById('minigame-canvas');
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  
+  mgState = { active: true, score: 0, timeLeft: 30, melons: [], interval: null, timerInterval: null, startTime: Date.now() };
+  
+  document.getElementById('mg-score').textContent = '0';
+  document.getElementById('mg-time').textContent = '30';
+  
+  mgState.interval = setInterval(() => { if (mgState.active) spawnMelon(); }, 600);
+  mgState.timerInterval = setInterval(() => {
+    mgState.timeLeft--;
+    document.getElementById('mg-time').textContent = mgState.timeLeft;
+    if (mgState.timeLeft <= 0) finishMinigame();
+  }, 1000);
+  
+  canvas.ontouchstart = canvas.onmousedown = handleMinigameTap;
+  requestAnimationFrame(renderMinigame);
+}
+
+function spawnMelon() {
+  const canvas = document.getElementById('minigame-canvas');
+  const size = 40 + Math.random() * 20;
+  mgState.melons.push({
+    x: Math.random() * (canvas.width - size),
+    y: -size,
+    size: size,
+    speed: 2 + Math.random() * 3,
+    rotation: Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() - 0.5) * 0.1,
+    type: Math.random() < 0.15 ? 'gold' : 'normal'
+  });
+}
+
+function handleMinigameTap(e) {
+  if (!mgState.active) return;
+  e.preventDefault();
+  const canvas = document.getElementById('minigame-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  
+  for (let i = mgState.melons.length - 1; i >= 0; i--) {
+    const m = mgState.melons[i];
+    const dx = x - (m.x + m.size/2);
+    const dy = y - (m.y + m.size/2);
+    if (dx*dx + dy*dy < (m.size/2) * (m.size/2)) {
+      mgState.score += m.type === 'gold' ? 3 : 1;
+      document.getElementById('mg-score').textContent = mgState.score;
+      mgState.melons.splice(i, 1);
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      break;
+    }
+  }
+}
+
+function renderMinigame() {
+  if (!mgState.active) return;
+  const canvas = document.getElementById('minigame-canvas');
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, '#1a1a3a');
+  grad.addColorStop(1, '#05050f');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  for (let i = mgState.melons.length - 1; i >= 0; i--) {
+    const m = mgState.melons[i];
+    m.y += m.speed;
+    m.rotation += m.rotSpeed;
+    if (m.y > canvas.height) { mgState.melons.splice(i, 1); continue; }
+    ctx.save();
+    ctx.translate(m.x + m.size/2, m.y + m.size/2);
+    ctx.rotate(m.rotation);
+    ctx.beginPath();
+    ctx.arc(0, 0, m.size/2, 0, Math.PI * 2);
+    if (m.type === 'gold') { ctx.fillStyle = '#fbbf24'; ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 20; }
+    else { ctx.fillStyle = '#22c55e'; }
+    ctx.fill();
+    ctx.strokeStyle = m.type === 'gold' ? '#f59e0b' : '#16a34a';
+    ctx.lineWidth = 2;
+    for (let j = -2; j <= 2; j++) { ctx.beginPath(); ctx.moveTo(j * 6, -m.size/2); ctx.lineTo(j * 6, m.size/2); ctx.stroke(); }
+    ctx.restore();
+  }
+  requestAnimationFrame(renderMinigame);
+}
+
+function finishMinigame() {
+  mgState.active = false;
+  clearInterval(mgState.interval);
+  clearInterval(mgState.timerInterval);
+  
+  const score = mgState.score;
+  const timeTaken = (Date.now() - mgState.startTime) / 1000;
+  const coins = score * (100 + Math.floor(Math.random() * 400));
+  let watermelons = 0;
+  if (score >= 15 && timeTaken <= 20) watermelons = 5;
+  
+  state.balance += coins;
+  state.watermelons += watermelons;
+  state.lastMinigame = Date.now();
+  if (score > state.minigameBestScore) state.minigameBestScore = score;
+  
+  document.getElementById('mg-final-score').textContent = score;
+  document.getElementById('mg-coins').textContent = '+' + formatNum(coins);
+  document.getElementById('mg-wm').textContent = '+' + watermelons;
+  document.getElementById('minigame-result').classList.add('show');
+  
+  updateUI();
+  checkAchievements();
+  checkTaskProgress();
+}
+
+function closeMinigame() {
+  mgState.active = false;
+  clearInterval(mgState.interval);
+  clearInterval(mgState.timerInterval);
+  document.getElementById('minigame-screen').classList.remove('show');
+  updateMinigameButton();
+}
+
+// ============ ACHIEVEMENTS ============
+function checkAchievements() {
+  ACHIEVEMENTS_DEF.forEach(a => {
+    if (!state.achievements.includes(a.id) && a.check(state)) {
+      state.achievements.push(a.id);
+      showToast(`🏆 Достижение: ${a.name}`);
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+  });
+  saveState();
+}
+
+// ============ OFFLINE EARNINGS ============
+function checkOfflineEarnings() {
+  const now = Date.now();
+  const last = state.lastOnline;
+  const diff = now - last;
+  const maxOffline = 3 * 60 * 60 * 1000;
+  const effectiveDiff = Math.min(diff, maxOffline);
+  const passive = getPassiveIncome();
+  
+  if (passive > 0 && effectiveDiff > 60000) {
+    const earned = Math.floor(passive * (effectiveDiff / 3600000));
+    if (earned > 0) {
+      state.balance += earned;
+      const hours = Math.floor(effectiveDiff / 3600000);
+      const mins = Math.floor((effectiveDiff % 3600000) / 60000);
+      const timeStr = hours > 0 ? `${hours}ч ${mins}м` : `${mins}м`;
+      setTimeout(() => {
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `
+          <div class="offline-emoji">🦛💤</div>
+          <div class="modal-title">С возвращением!</div>
+          <div class="modal-desc">Пока тебя не было ${timeStr}, бегемот заработал:</div>
+          <div class="offline-amount">+${formatNum(earned)} 🪙</div>
+          <button class="modal-btn primary" id="btn-claim-offline">Забрать!</button>
+        `;
+        modal.classList.add('show');
+        document.getElementById('btn-claim-offline').addEventListener('click', closeModal);
+      }, 1500);
+    }
+  }
+  state.lastOnline = now;
+  saveState();
+}
+
+// ============ ONBOARDING (FIXED WITH addEventListener) ============
+let onbSlide = 0;
+
+function setupOnboarding() {
+  const skipBtn = document.getElementById('onb-skip-btn');
+  const nextBtn = document.getElementById('onb-next-btn');
+  
+  // Remove old listeners by cloning
+  const newSkipBtn = skipBtn.cloneNode(true);
+  const newNextBtn = nextBtn.cloneNode(true);
+  skipBtn.parentNode.replaceChild(newSkipBtn, skipBtn);
+  nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+  
+  newSkipBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    completeOnboarding();
+  });
+  
+  newNextBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onbSlide++;
+    if (onbSlide >= 4) {
+      completeOnboarding();
+      return;
+    }
+    document.querySelectorAll('.onb-slide').forEach(s => s.classList.remove('active'));
+    const nextSlide = document.querySelector(`.onb-slide[data-slide="${onbSlide}"]`);
+    if (nextSlide) nextSlide.classList.add('active');
+    document.querySelectorAll('.onb-dot').forEach((d, i) => d.classList.toggle('active', i === onbSlide));
+    if (onbSlide === 3) newNextBtn.textContent = 'Начать! 🚀';
+  });
+}
+
+function completeOnboarding() {
+  try {
+    state.onboardingCompleted = true;
+    if (!state.onboardingRewardClaimed) {
+      state.balance += 50000;
+      state.onboardingRewardClaimed = true;
+      saveState();
+      setTimeout(() => {
+        showToast('🎁 +50,000 монет за регистрацию!');
+        showFloatingReward('🎁 +50,000 🪙');
+        updateUI();
+      }, 300);
+    }
+    saveState();
+    const onboarding = document.getElementById('onboarding');
+    if (onboarding) {
+      onboarding.classList.remove('show');
+      onboarding.style.display = 'none';
+    }
+  } catch(e) {
+    console.error('Onboarding error:', e);
+    // Force hide
+    const onboarding = document.getElementById('onboarding');
+    if (onboarding) {
+      onboarding.style.display = 'none';
+      onboarding.classList.remove('show');
+    }
+  }
+}
+
+// ============ MODAL ============
+function openConfirmModal(title, desc, onConfirm) {
+  const modal = document.getElementById('modal');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <div class="modal-title">${title}</div>
+    <div class="modal-desc">${desc}</div>
+    <button class="modal-btn danger" id="btn-confirm-action">Подтвердить</button>
+    <button class="modal-btn secondary" id="btn-cancel-action">Отмена</button>
+  `;
+  modal.classList.add('show');
+  document.getElementById('btn-confirm-action').addEventListener('click', () => { closeModal(); onConfirm(); });
+  document.getElementById('btn-cancel-action').addEventListener('click', closeModal);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+
+// ============ TOAST ============
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showFloatingReward(text) {
+  const el = document.createElement('div');
+  el.className = 'floating-reward';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2100);
+}
+
+// ============ INIT ============
+function init() {
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.classList.add('hide');
+      setTimeout(() => splash.remove(), 600);
+    }
+    
+    // Show onboarding if first time
+    if (!state.onboardingCompleted) {
+      const onboarding = document.getElementById('onboarding');
+      if (onboarding) {
+        onboarding.style.display = 'flex';
+        onboarding.classList.add('show');
+        setupOnboarding();
+      }
+    }
+  }, 1800);
+  
+  initBackground();
+  renderHippo();
+  updateUI();
+  checkAchievements();
+  checkOfflineEarnings();
+  
+  // Setup header buttons
+  document.getElementById('btn-daily').addEventListener('click', openDaily);
+  document.getElementById('btn-chests').addEventListener('click', openChests);
+  document.getElementById('btn-settings').addEventListener('click', () => showPage('settings'));
+  document.getElementById('btn-to-profile').addEventListener('click', () => showPage('profile'));
+  document.getElementById('btn-back-leagues').addEventListener('click', () => showPage('leagues'));
+  document.getElementById('minigame-btn').addEventListener('click', openMinigame);
+  document.getElementById('mg-close').addEventListener('click', closeMinigame);
+  document.getElementById('mg-claim-btn').addEventListener('click', closeMinigame);
+  
+  // Setup nav buttons
+  document.querySelectorAll('#bottom-nav .nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => showPage(btn.dataset.page));
+  });
+  
+  ['nav-shop','nav-tasks','nav-leagues','nav-friends','nav-profile','nav-settings','nav-leaderboard'].forEach(id => cloneNav(id, 'home'));
+  
+  // Show daily reward modal if available
+  setTimeout(() => {
+    if (canClaimDaily() && state.onboardingCompleted) {
+      setTimeout(() => openDaily(), 2000);
+    }
+  }, 2500);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { state.lastOnline = Date.now(); saveState(); }
+  else checkOfflineEarnings();
+});
+
+window.addEventListener('beforeunload', () => { state.lastOnline = Date.now(); saveState(); });
+
+init();
 </script>
 </body>
 </html>
